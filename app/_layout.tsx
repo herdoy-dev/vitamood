@@ -20,6 +20,7 @@ import { LockScreen } from "@/components/lock/lock-screen";
 import { HelpButton } from "@/components/safety/help-button";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { BiometricLockProvider, useLock } from "@/lib/lock/lock-context";
+import { ThemeProvider } from "@/lib/theme/theme-context";
 import "./global.css";
 
 SplashScreen.preventAutoHideAsync();
@@ -47,14 +48,16 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <BiometricLockProvider>
-          <Stack screenOptions={{ headerShown: false }} />
-          <HelpButton />
-          <LockGate />
-          <StatusBar style="auto" />
-        </BiometricLockProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BiometricLockProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+            <HelpButton />
+            <LockGate />
+            <StatusBar style="auto" />
+          </BiometricLockProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

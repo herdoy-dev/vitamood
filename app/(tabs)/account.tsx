@@ -14,6 +14,7 @@ import {
 } from "@/lib/lock/biometric";
 import { useLock } from "@/lib/lock/lock-context";
 import { getProfile, type Profile } from "@/lib/profile/profile";
+import { useTheme, type ThemePreference } from "@/lib/theme/theme-context";
 
 /**
  * Account tab — settings hub for the signed-in user.
@@ -31,6 +32,8 @@ export default function AccountTab() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { enabled: lockEnabled, setEnabled: setLockEnabled } = useLock();
+  const { preference: themePreference, setPreference: setThemePreference } =
+    useTheme();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [signingOut, setSigningOut] = useState(false);
@@ -182,6 +185,45 @@ export default function AccountTab() {
             }}
             thumbColor="rgb(255 255 255)"
           />
+        </View>
+      </Card>
+
+      <Card className="mt-3">
+        <Text variant="caption">Theme</Text>
+        <Text variant="body-medium" className="mt-1">
+          Appearance
+        </Text>
+        <View className="mt-4 flex-row gap-2">
+          {(["system", "light", "dark"] as ThemePreference[]).map((option) => {
+            const selected = themePreference === option;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => setThemePreference(option)}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                className={`flex-1 items-center rounded-2xl px-3 py-3 ${
+                  selected
+                    ? "bg-primary"
+                    : "bg-bg border border-border"
+                }`}
+              >
+                <Text
+                  className={
+                    selected
+                      ? "font-body-semibold text-primary-fg text-sm"
+                      : "font-body-medium text-text text-sm"
+                  }
+                >
+                  {option === "system"
+                    ? "System"
+                    : option === "light"
+                      ? "Light"
+                      : "Dark"}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </Card>
 

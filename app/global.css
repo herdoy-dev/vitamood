@@ -18,9 +18,13 @@
     --border: 230 226 220;      /* subtle dividers on light bg */
   }
 
-  .dark:root,
-  :root.dark {
-    /* Calm palette — dark mode */
+  /* Dark mode — NativeWind v4 with darkMode: "class" applies the
+     `.dark` class to the root when colorScheme.set("dark") is
+     called (or when system prefers-color-scheme is dark and the
+     preference is "system"). The CSS variable lookup walks up the
+     tree, so any descendant using bg-bg / text-text / etc. picks
+     up these values automatically. */
+  .dark {
     --bg: 14 16 20;             /* #0E1014 */
     --surface: 24 27 32;        /* slightly lifted */
     --text: 232 230 225;        /* #E8E6E1 */
