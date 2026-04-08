@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Sun, TrendingUp, User, Wind } from "lucide-react-native";
+import { House, TrendingUp, User, Wind } from "lucide-react-native";
 
 /**
  * Main authenticated experience: home, exercises, insights, account.
@@ -42,7 +42,7 @@ export default function TabsLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (
-            <Sun color={color} size={size} strokeWidth={1.75} />
+            <House color={color} size={size} strokeWidth={1.75} />
           ),
         }}
       />
