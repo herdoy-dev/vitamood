@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { Slider } from "@/components/ui/slider";
 import { Text } from "@/components/ui/text";
+import { useAuth } from "@/lib/auth/auth-context";
+import { friendlyAuthError } from "@/lib/auth/error-messages";
+import { saveCheckIn } from "@/lib/checkin";
 
 /**
  * Daily check-in modal (PLAN.md §4.2).
@@ -22,20 +25,28 @@ const ENERGY_OPTIONS = ["😴", "🥱", "😐", "💪", "⚡"];
 
 export default function CheckInScreen() {
   const router = useRouter();
+  const { user } = useAuth();
 
   const [mood, setMood] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = mood !== null && energy !== null && !submitting;
+  const canSubmit =
+    mood !== null && energy !== null && !submitting && user !== null;
 
   async function onSubmit() {
-    if (!canSubmit) return;
+    if (!canSubmit || mood === null || energy === null || !user) return;
     setSubmitting(true);
-    // G2 will persist {mood, energy, note} to Firestore here.
-    // For G1 we just close the modal.
-    router.back();
+    setError(null);
+    try {
+      await saveCheckIn(user.uid, { mood, energy, note });
+      router.back();
+    } catch (err) {
+      setError(friendlyAuthError(err));
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -96,6 +107,12 @@ export default function CheckInScreen() {
           textAlignVertical="top"
         />
       </View>
+
+      {error && (
+        <Text variant="caption" className="mt-4 text-crisis">
+          {error}
+        </Text>
+      )}
 
       <View className="mt-8 mb-6">
         <Button
