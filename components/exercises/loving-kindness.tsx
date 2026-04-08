@@ -1,3 +1,4 @@
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
@@ -88,6 +89,9 @@ export function LovingKindnessPlayer() {
 
   useEffect(() => {
     if (done) {
+      Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      ).catch(() => {});
       void session.complete({
         stepsReached: STAGES.length,
         totalSteps: STAGES.length,

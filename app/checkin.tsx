@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
@@ -80,6 +81,9 @@ export default function CheckInScreen() {
     setError(null);
     try {
       await saveCheckIn(user.uid, { mood, energy, note });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+        () => {},
+      );
       router.back();
     } catch (err) {
       setError(friendlyAuthError(err));

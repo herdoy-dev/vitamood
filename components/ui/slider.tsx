@@ -1,3 +1,4 @@
+import * as Haptics from "expo-haptics";
 import { Pressable, Text, View } from "react-native";
 
 export interface SliderProps {
@@ -54,7 +55,12 @@ export function Slider({
         return (
           <Pressable
             key={stepValue}
-            onPress={() => onChange(stepValue)}
+            onPress={() => {
+              // Subtle tactile cue on selection — gives the discrete
+              // mood/energy picker a nicer feel without being noisy.
+              Haptics.selectionAsync().catch(() => {});
+              onChange(stepValue);
+            }}
             accessibilityRole="button"
             accessibilityLabel={`${label} ${stepValue} of ${options.length}`}
             accessibilityState={{ selected }}

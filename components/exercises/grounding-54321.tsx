@@ -1,3 +1,4 @@
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -73,9 +74,13 @@ export function Grounding54321Player() {
   const step = STEPS[index];
   const isLast = index === STEPS.length - 1;
 
-  // Save the log the moment the user reaches the "done" view.
+  // Save the log the moment the user reaches the "done" view, plus
+  // a soft success haptic so the completion has a tactile beat.
   useEffect(() => {
     if (done) {
+      Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      ).catch(() => {});
       void session.complete({
         stepsReached: STEPS.length,
         totalSteps: STEPS.length,

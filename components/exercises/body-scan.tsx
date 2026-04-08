@@ -1,3 +1,4 @@
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
@@ -46,8 +47,12 @@ export function BodyScanPlayer() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Save when the user reaches the done view (full completion).
+  // Soft success haptic so the completion has a tactile beat.
   useEffect(() => {
     if (done) {
+      Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      ).catch(() => {});
       void session.complete({
         stepsReached: STEPS.length,
         totalSteps: STEPS.length,
