@@ -114,6 +114,29 @@ export default function Account() {
       </Card>
 
       <Card className="mt-3">
+        <View className="flex-row items-start justify-between gap-4">
+          <View className="flex-1 gap-1">
+            <Text variant="caption">Privacy</Text>
+            <Text variant="body-medium">Data and consent</Text>
+            <Text variant="caption" className="mt-1 text-text-muted">
+              Change what we save, what the AI sees, and how we
+              reach out.
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Edit privacy settings"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onPress={() => router.push("/edit-consent" as any)}
+            hitSlop={8}
+            className="p-2"
+          >
+            <Feather name="edit-2" size={18} color="rgb(108 112 122)" />
+          </Pressable>
+        </View>
+      </Card>
+
+      <Card className="mt-3">
         <Text variant="subtitle">Need help right now?</Text>
         <Text variant="caption" className="mt-1">
           Hotlines and a grounding exercise. Works offline.

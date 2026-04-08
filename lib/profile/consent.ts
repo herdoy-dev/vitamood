@@ -1,4 +1,4 @@
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 /**
@@ -46,4 +46,26 @@ export async function saveConsent(uid: string, prefs: ConsentPrefs) {
     },
     { merge: true },
   );
+}
+
+/**
+ * Read the user's current consent prefs. Used by the settings
+ * surface to prefill the edit-consent screen.
+ *
+ * Returns null if the doc doesn't exist or has no settings field
+ * (which can happen briefly between sign-up and the consent step
+ * in onboarding).
+ */
+export async function getConsent(uid: string): Promise<ConsentPrefs | null> {
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  const settings = snap.data().settings;
+  if (!settings) return null;
+  return {
+    storeChatHistory: settings.storeChatHistory ?? true,
+    aiMemoryEnabled: settings.aiMemoryEnabled ?? false,
+    safetyLogOptIn: settings.safetyLogOptIn ?? false,
+    adaptiveReminders: settings.adaptiveReminders ?? false,
+  };
 }
