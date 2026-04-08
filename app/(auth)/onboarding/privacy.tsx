@@ -1,69 +1,83 @@
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 
 /**
  * Step 2 of onboarding — privacy.
  *
- * Tone matters here: this isn't a legal page (the actual policy
- * lives in settings later). It's a plain-language summary so a user
- * understands what's collected and why before they commit to
- * creating an account.
+ * Tone: plain language, not legal. The actual policy lives in
+ * settings later. Honesty matters here per PLAN.md §9 — we don't
+ * claim "encrypted from us" generally, only for the chat/journal
+ * free-text fields that get client-side encryption later.
  *
- * Honesty matters too: per PLAN.md §9 we don't claim "encrypted at
- * rest from us" because Firestore is hosted by Google and we can
- * read documents in our own project. The actual encryption-from-us
- * promise only applies to the chat content / journal text fields
- * (encrypted client-side later, M3+).
+ * Layout: numbered points (01 / 02 / 03) instead of cards. The
+ * numbers anchor the eye and give the page a quiet editorial
+ * feel — feels deliberate without being maximalist.
  */
+
+interface Point {
+  index: string;
+  title: string;
+  body: string;
+}
+
+const POINTS: Point[] = [
+  {
+    index: "01",
+    title: "Just what we need",
+    body: "Your email, your daily mood and energy, and anything you choose to write or say. Nothing else — no contacts, no location, no advertising trackers.",
+  },
+  {
+    index: "02",
+    title: "On your device, encrypted on the way out",
+    body: "Free text you write — chat, journal entries — is encrypted on your device before it's stored, so even we can't read it.",
+  },
+  {
+    index: "03",
+    title: "Yours to take or delete",
+    body: "Export everything as a file, or delete your account and all of its data, any time, from settings. One tap.",
+  },
+];
+
 export default function OnboardingPrivacy() {
   const router = useRouter();
 
   return (
-    <Screen scroll>
-      <View className="gap-2">
-        <Text variant="caption">Step 2 of 4</Text>
-        <Text variant="title">Your data, plainly.</Text>
-      </View>
-
-      <View className="mt-6 gap-3">
-        <Card>
-          <Text variant="subtitle">What we collect</Text>
-          <Text variant="body" className="mt-2 text-text-muted">
-            Just your email, your daily mood and energy ratings, and
-            anything you choose to write or say. Nothing else — no
-            contacts, no location, no advertising trackers.
-          </Text>
-        </Card>
-
-        <Card>
-          <Text variant="subtitle">Where it lives</Text>
-          <Text variant="body" className="mt-2 text-text-muted">
-            On your device and in our Firebase database. The free-text
-            you write — chat, journal entries — is encrypted on your
-            device before it's stored, so even we can't read it.
-          </Text>
-        </Card>
-
-        <Card>
-          <Text variant="subtitle">What you control</Text>
-          <Text variant="body" className="mt-2 text-text-muted">
-            You can export everything as a file, or delete your account
-            and all of its data, any time, from settings. One tap.
-          </Text>
-        </Card>
-      </View>
-
-      <View className="mt-8 gap-3">
+    <OnboardingShell
+      step={2}
+      totalSteps={4}
+      title="Your data, plainly."
+      footer={
         <Button
           label="Continue"
           size="lg"
           onPress={() => router.push("/(auth)/onboarding/safety")}
         />
+      }
+    >
+      <View className="gap-7">
+        {POINTS.map((point) => (
+          <View key={point.index} className="flex-row gap-4">
+            <Text
+              variant="display"
+              className="text-primary"
+              style={{ width: 48 }}
+            >
+              {point.index}
+            </Text>
+            <View className="flex-1 gap-1">
+              <Text variant="body-medium" className="text-text">
+                {point.title}
+              </Text>
+              <Text variant="body" className="text-text-muted">
+                {point.body}
+              </Text>
+            </View>
+          </View>
+        ))}
       </View>
-    </Screen>
+    </OnboardingShell>
   );
 }
