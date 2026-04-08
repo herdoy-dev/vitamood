@@ -3,19 +3,20 @@ import { View } from "react-native";
 import { BodyScanPlayer } from "@/components/exercises/body-scan";
 import { BoxBreathingPlayer } from "@/components/exercises/box-breathing";
 import { Grounding54321Player } from "@/components/exercises/grounding-54321";
+import { LovingKindnessPlayer } from "@/components/exercises/loving-kindness";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
-import { findExercise, formatDuration, type Exercise } from "@/constants/exercises";
+import { findExercise } from "@/constants/exercises";
 
 /**
  * Exercise player route — picks the right player component for the
- * exercise id and falls back to a stub for ones not yet built.
+ * exercise id. The catalog is bundled in the binary so an unknown
+ * id can only happen on a stale link, in which case we render a
+ * friendly "not found" view rather than a 404.
  *
- * Stub explicitly ships in J1 so users can browse the catalog
- * without crashes; J2-J5 progressively replace stubs with real
- * interactive players.
+ * The TypeScript exhaustiveness check on the switch ensures every
+ * ExerciseKind in constants/exercises.ts has a matching player.
  */
 export default function ExercisePlayerRoute() {
   const router = useRouter();
@@ -44,43 +45,7 @@ export default function ExercisePlayerRoute() {
       return <Grounding54321Player />;
     case "body-scan":
       return <BodyScanPlayer />;
-    default:
-      return <StubPlayer exercise={exercise} />;
+    case "loving-kindness":
+      return <LovingKindnessPlayer />;
   }
-}
-
-function StubPlayer({ exercise }: { exercise: Exercise }) {
-  const router = useRouter();
-  return (
-    <Screen scroll>
-      <View className="flex-row items-center gap-4">
-        <Text className="text-5xl">{exercise.icon}</Text>
-        <View className="flex-1">
-          <Text variant="title">{exercise.title}</Text>
-          <Text variant="caption" className="mt-1">
-            {formatDuration(exercise.durationSec)}
-          </Text>
-        </View>
-      </View>
-
-      <Card className="mt-6">
-        <Text variant="body" className="text-text-muted">
-          {exercise.description}
-        </Text>
-      </Card>
-
-      <View className="mt-8 gap-3">
-        <Button label="Begin" size="lg" disabled onPress={() => {}} />
-        <Text variant="caption" className="text-center">
-          The interactive player for this practice is on its way.
-        </Text>
-        <Button
-          label="Back"
-          variant="ghost"
-          size="lg"
-          onPress={() => router.back()}
-        />
-      </View>
-    </Screen>
-  );
 }
