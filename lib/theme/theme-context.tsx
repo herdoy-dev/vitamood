@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { colorScheme } from "nativewind";
+import { colorScheme, useColorScheme } from "nativewind";
 import {
   createContext,
   useCallback,
@@ -9,6 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { View } from "react-native";
+import { themes } from "@/lib/theme/themes";
 
 /**
  * Theme preference (PLAN.md §4.7).
@@ -85,8 +87,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>
+      <ThemedRoot>{children}</ThemedRoot>
+    </ThemeContext.Provider>
   );
+}
+
+/**
+ * Wrapping View whose style applies one of the runtime CSS variable
+ * themes from `lib/theme/themes`. Reads the active scheme via
+ * NativeWind's useColorScheme so it stays in sync whenever the user
+ * (or the OS, in "system" mode) flips it.
+ *
+ * This is the piece that makes dark mode actually work on RN —
+ * see the doc-block in lib/theme/themes for the full rationale.
+ */
+function ThemedRoot({ children }: { children: ReactNode }) {
+  const { colorScheme: scheme } = useColorScheme();
+  const active = scheme === "dark" ? themes.dark : themes.light;
+  return <View style={[{ flex: 1 }, active]}>{children}</View>;
 }
 
 export function useTheme(): ThemeContextValue {
