@@ -1,8 +1,15 @@
-import { Feather } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { Sun, TrendingUp, User, Wind } from "lucide-react-native";
 
 /**
- * Main authenticated experience: home, chat, exercises, insights.
+ * Main authenticated experience: home, exercises, insights, account.
+ * (Chat is href:null, hidden from the bar but reachable via the
+ * "Open chat" card on home.)
+ *
+ * Tab bar uses Lucide icons via lucide-react-native — refined,
+ * thin-stroke set that matches VitaMood's calm aesthetic better
+ * than the bolder Feather glyphs we used initially. PLAN.md §3
+ * lists lucide-react-native as the chosen icon set.
  *
  * The tab bar uses raw color values (not className) because react-
  * navigation's tabBarStyle doesn't go through NativeWind. Values
@@ -35,7 +42,7 @@ export default function TabsLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (
-            <Feather name="sun" color={color} size={size} />
+            <Sun color={color} size={size} strokeWidth={1.75} />
           ),
         }}
       />
@@ -54,7 +61,7 @@ export default function TabsLayout() {
         options={{
           title: "Exercises",
           tabBarIcon: ({ color, size }) => (
-            <Feather name="wind" color={color} size={size} />
+            <Wind color={color} size={size} strokeWidth={1.75} />
           ),
         }}
       />
@@ -63,7 +70,7 @@ export default function TabsLayout() {
         options={{
           title: "Insights",
           tabBarIcon: ({ color, size }) => (
-            <Feather name="trending-up" color={color} size={size} />
+            <TrendingUp color={color} size={size} strokeWidth={1.75} />
           ),
         }}
       />
@@ -72,7 +79,7 @@ export default function TabsLayout() {
         options={{
           title: "Account",
           tabBarIcon: ({ color, size }) => (
-            <Feather name="user" color={color} size={size} />
+            <User color={color} size={size} strokeWidth={1.75} />
           ),
         }}
       />
