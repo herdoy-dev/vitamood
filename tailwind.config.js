@@ -2,8 +2,30 @@
 module.exports = {
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
+  darkMode: "class",
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        // Semantic tokens — drive light/dark via CSS vars in app/global.css
+        bg: "rgb(var(--bg) / <alpha-value>)",
+        surface: "rgb(var(--surface) / <alpha-value>)",
+        text: "rgb(var(--text) / <alpha-value>)",
+        "text-muted": "rgb(var(--text-muted) / <alpha-value>)",
+        primary: {
+          DEFAULT: "rgb(var(--primary) / <alpha-value>)",
+          fg: "rgb(var(--primary-fg) / <alpha-value>)",
+        },
+        accent: {
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          fg: "rgb(var(--accent-fg) / <alpha-value>)",
+        },
+        crisis: {
+          DEFAULT: "rgb(var(--crisis) / <alpha-value>)",
+          fg: "rgb(var(--crisis-fg) / <alpha-value>)",
+        },
+        border: "rgb(var(--border) / <alpha-value>)",
+      },
+    },
   },
   plugins: [],
 };

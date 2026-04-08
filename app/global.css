@@ -1,3 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* Calm palette — light mode (PLAN.md §8) */
+    --bg: 247 245 242;          /* #F7F5F2 warm off-white */
+    --surface: 255 255 255;     /* #FFFFFF cards on bg */
+    --text: 42 45 51;           /* #2A2D33 primary text */
+    --text-muted: 108 112 122;  /* muted body text */
+    --primary: 123 166 138;     /* #7BA68A sage */
+    --primary-fg: 255 255 255;  /* text on primary */
+    --accent: 232 195 158;      /* #E8C39E warm sand */
+    --accent-fg: 42 45 51;      /* text on accent */
+    --crisis: 201 123 92;       /* #C97B5C warm terracotta — never red */
+    --crisis-fg: 255 255 255;
+    --border: 230 226 220;      /* subtle dividers on light bg */
+  }
+
+  .dark:root,
+  :root.dark {
+    /* Calm palette — dark mode */
+    --bg: 14 16 20;             /* #0E1014 */
+    --surface: 24 27 32;        /* slightly lifted */
+    --text: 232 230 225;        /* #E8E6E1 */
+    --text-muted: 156 160 168;
+    --primary: 138 178 152;     /* sage, slightly lightened for contrast */
+    --primary-fg: 14 16 20;
+    --accent: 232 195 158;
+    --accent-fg: 14 16 20;
+    --crisis: 217 142 110;      /* terracotta, slightly lightened */
+    --crisis-fg: 14 16 20;
+    --border: 38 42 50;
+  }
+}
