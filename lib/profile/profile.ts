@@ -89,6 +89,65 @@ export async function getProfile(uid: string): Promise<Profile | null> {
   };
 }
 
+/**
+ * Partial update for an existing profile. Used by the settings
+ * screen so users can edit their name, check-in time, or goals
+ * without re-running the onboarding flow.
+ *
+ * Distinct from saveProfile() because:
+ *   - Doesn't touch profile.createdAt (which should be set-once).
+ *   - Doesn't touch onboardingCompleted (already true if we got here).
+ *   - Doesn't touch birthYear — that one was age-verified and the
+ *     settings screen intentionally doesn't expose it for edit, to
+ *     avoid users trivially flipping it after the gate.
+ *
+ * Empty/undefined fields are skipped so the caller can update one
+ * thing at a time.
+ */
+export async function updateProfile(
+  uid: string,
+  partial: { name?: string; checkInTime?: string; goals?: ProfileGoal[] },
+) {
+  const userRef = doc(db, "users", uid);
+
+  const update: Record<string, unknown> = {};
+  if (partial.name !== undefined) update["profile.name"] = partial.name;
+  if (partial.checkInTime !== undefined)
+    update["profile.checkInTime"] = partial.checkInTime;
+  if (partial.goals !== undefined) {
+    const validGoals = partial.goals.filter((g): g is ProfileGoal =>
+      (PROFILE_GOALS as readonly string[]).includes(g),
+    );
+    update["profile.goals"] = validGoals;
+  }
+
+  if (Object.keys(update).length === 0) return;
+
+  await setDoc(userRef, deepenUpdate(update), { merge: true });
+}
+
+/**
+ * Convert a flat dot-path object ({ "profile.name": "Sarah" }) into
+ * a nested object ({ profile: { name: "Sarah" } }) for setDoc with
+ * merge:true. setDoc accepts dot-paths only via updateDoc, but
+ * updateDoc fails if the parent doc doesn't exist — and merge:true
+ * setDoc handles both create and update cleanly.
+ */
+function deepenUpdate(flat: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [path, value] of Object.entries(flat)) {
+    const parts = path.split(".");
+    let cursor = out;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const k = parts[i];
+      if (typeof cursor[k] !== "object" || cursor[k] === null) cursor[k] = {};
+      cursor = cursor[k] as Record<string, unknown>;
+    }
+    cursor[parts[parts.length - 1]] = value;
+  }
+  return out;
+}
+
 export async function saveProfile(uid: string, input: ProfileInput) {
   const userRef = doc(db, "users", uid);
 

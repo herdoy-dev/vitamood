@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { Stack, useRouter } from "expo-router";
-import { useState } from "react";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/lib/auth/auth-context";
 import { friendlyAuthError } from "@/lib/auth/error-messages";
+import { getProfile, type Profile } from "@/lib/profile/profile";
 
 /**
  * Minimal account screen — currently just shows the signed-in email
@@ -19,8 +20,26 @@ export default function Account() {
   const router = useRouter();
   const { user, signOut } = useAuth();
 
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Refetch on focus so returning from edit-profile shows the
+  // updated values immediately.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      if (!user) return;
+      getProfile(user.uid)
+        .then((p) => {
+          if (!cancelled) setProfile(p);
+        })
+        .catch((err) => console.warn("Failed to load profile:", err));
+      return () => {
+        cancelled = true;
+      };
+    }, [user]),
+  );
 
   async function onSignOut() {
     setSigningOut(true);
@@ -57,6 +76,41 @@ export default function Account() {
         <Text variant="body-medium" className="mt-1">
           {user?.email ?? "—"}
         </Text>
+      </Card>
+
+      <Card className="mt-3">
+        <View className="flex-row items-start justify-between gap-4">
+          <View className="flex-1 gap-1">
+            <Text variant="caption">Profile</Text>
+            <Text variant="body-medium">{profile?.name ?? "—"}</Text>
+            {profile?.checkInTime && (
+              <Text variant="caption" className="text-text-muted">
+                Daily check-in around {profile.checkInTime}
+              </Text>
+            )}
+            {profile?.goals && profile.goals.length > 0 && (
+              <View className="mt-2 flex-row flex-wrap gap-2">
+                {profile.goals.map((goal) => (
+                  <View
+                    key={goal}
+                    className="rounded-full bg-bg px-3 py-1"
+                  >
+                    <Text variant="caption">{goal}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile"
+            onPress={() => router.push("/edit-profile")}
+            hitSlop={8}
+            className="p-2"
+          >
+            <Feather name="edit-2" size={18} color="rgb(108 112 122)" />
+          </Pressable>
+        </View>
       </Card>
 
       <Card className="mt-3">
