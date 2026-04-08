@@ -10,8 +10,11 @@ export interface SliderProps {
   /**
    * Labels for each step. For mood/energy this is typically emoji faces.
    * Length determines the range (e.g. 5 emojis = 1..5).
+   *
+   * Accepts readonly arrays so callers can use `as const` tuples
+   * (which is what lib/checkin exports) without a cast.
    */
-  options: string[];
+  options: readonly string[];
   /**
    * Accessibility label describing what the slider measures.
    */

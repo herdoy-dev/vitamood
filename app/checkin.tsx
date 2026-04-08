@@ -8,7 +8,11 @@ import { Slider } from "@/components/ui/slider";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/lib/auth/auth-context";
 import { friendlyAuthError } from "@/lib/auth/error-messages";
-import { saveCheckIn } from "@/lib/checkin";
+import {
+  ENERGY_OPTIONS,
+  MOOD_OPTIONS,
+  saveCheckIn,
+} from "@/lib/checkin";
 
 /**
  * Daily check-in modal (PLAN.md §4.2).
@@ -16,12 +20,9 @@ import { saveCheckIn } from "@/lib/checkin";
  * Two sliders + optional one-line note. Designed to take under 30
  * seconds — the ritual only works if it's frictionless.
  *
- * G1 builds the UI. G2 wires the Firestore write. G3 wires the
- * home tab card to read today's check-in and prompt if missing.
+ * Slider emoji labels live in lib/checkin so the home tab card can
+ * render the same icons when displaying a saved value.
  */
-
-const MOOD_OPTIONS = ["😞", "😕", "😐", "🙂", "😄"];
-const ENERGY_OPTIONS = ["😴", "🥱", "😐", "💪", "⚡"];
 
 export default function CheckInScreen() {
   const router = useRouter();

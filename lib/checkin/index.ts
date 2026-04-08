@@ -21,6 +21,16 @@ import { db } from "@/lib/firebase";
  * the future check-in reader) need to encrypt/decrypt. Marked TODO.
  */
 
+/**
+ * Emoji labels for the mood and energy sliders. Lifted out of the
+ * check-in screen so the home tab card can render the same emoji
+ * back when reading a saved value.
+ *
+ * 0-indexed: MOOD_OPTIONS[mood - 1] gives the emoji for a 1..5 value.
+ */
+export const MOOD_OPTIONS = ["😞", "😕", "😐", "🙂", "😄"] as const;
+export const ENERGY_OPTIONS = ["😴", "🥱", "😐", "💪", "⚡"] as const;
+
 export interface CheckInInput {
   /** 1..5 from the mood slider (PLAN.md §4.2) */
   mood: number;
