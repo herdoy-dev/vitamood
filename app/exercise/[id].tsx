@@ -1,23 +1,21 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { View } from "react-native";
+import { BoxBreathingPlayer } from "@/components/exercises/box-breathing";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
-import { findExercise, formatDuration } from "@/constants/exercises";
+import { findExercise, formatDuration, type Exercise } from "@/constants/exercises";
 
 /**
- * Exercise player route.
+ * Exercise player route — picks the right player component for the
+ * exercise id and falls back to a stub for ones not yet built.
  *
- * J1 ships a stub renderer that shows the exercise's title,
- * description, and duration. The actual interactive players land
- * one per exercise in J2 (box breathing), J3 (5-4-3-2-1), J4 (body
- * scan), J5 (loving-kindness). Until then "Begin" is disabled.
- *
- * Unknown id → friendly "not found" rather than a 404 — the catalog
- * is bundled in the binary so this can only happen on a stale link.
+ * Stub explicitly ships in J1 so users can browse the catalog
+ * without crashes; J2-J5 progressively replace stubs with real
+ * interactive players.
  */
-export default function ExercisePlayer() {
+export default function ExercisePlayerRoute() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const exercise = id ? findExercise(id) : undefined;
@@ -37,6 +35,16 @@ export default function ExercisePlayer() {
     );
   }
 
+  switch (exercise.id) {
+    case "box-breathing":
+      return <BoxBreathingPlayer />;
+    default:
+      return <StubPlayer exercise={exercise} />;
+  }
+}
+
+function StubPlayer({ exercise }: { exercise: Exercise }) {
+  const router = useRouter();
   return (
     <Screen scroll>
       <View className="flex-row items-center gap-4">
