@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
 
@@ -54,6 +55,7 @@ function makeId() {
 }
 
 export default function ChatTab() {
+  const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
@@ -102,14 +104,25 @@ export default function ChatTab() {
     >
       <Screen>
         <View className="flex-1">
-          <View className="gap-1">
+          {/* Thin chat header — caption + close button. The body
+              title from the previous version is gone; this surface
+              is now an immersive conversation, not a tab page. */}
+          <View className="flex-row items-center justify-between border-b border-border pt-2 pb-3">
             <Text variant="caption">Companion</Text>
-            <Text variant="title">A safe place to think out loud</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              onPress={() => router.replace("/(tabs)/home")}
+              hitSlop={12}
+              className="p-1"
+            >
+              <Feather name="x" size={22} color="rgb(42 45 51)" />
+            </Pressable>
           </View>
 
           <ScrollView
             ref={scrollRef}
-            className="flex-1 mt-6"
+            className="flex-1 mt-4"
             contentContainerStyle={{ paddingBottom: 16 }}
             showsVerticalScrollIndicator={false}
           >

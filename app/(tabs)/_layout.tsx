@@ -42,10 +42,11 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Chat",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="message-circle" color={color} size={size} />
-          ),
+          // Hide from the visible tab bar — the chat surface is
+          // immersive and reached via a CTA on home instead.
+          href: null,
+          // Hide the bar entirely when the chat route is focused.
+          tabBarStyle: { display: "none" },
         }}
       />
       <Tabs.Screen

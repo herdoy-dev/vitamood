@@ -126,6 +126,22 @@ export default function HomeTab() {
             </View>
           </Card>
         )}
+
+        {/* Discoverability for the immersive chat surface — the
+            chat tab icon is hidden from the bar so this card is
+            the only entry point. */}
+        <Card className="mt-3">
+          <Text variant="subtitle">Companion</Text>
+          <Text variant="caption" className="mt-1">
+            A safe place to think out loud with your AI companion.
+          </Text>
+          <View className="mt-4">
+            <Button
+              label="Open chat"
+              onPress={() => router.push("/(tabs)/chat")}
+            />
+          </View>
+        </Card>
       </View>
     </Screen>
   );
