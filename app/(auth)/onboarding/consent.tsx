@@ -55,9 +55,7 @@ export default function OnboardingConsent() {
     setError(null);
     try {
       await saveConsent(user.uid, prefs);
-      // F5 will route to /(auth)/onboarding/profile. For now, hand
-      // off to the home tab so the flow stays connected end to end.
-      router.replace("/(tabs)/home");
+      router.replace("/(auth)/onboarding/profile");
     } catch (err) {
       setError(friendlyAuthError(err));
       setSubmitting(false);

@@ -1,0 +1,152 @@
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { Pressable, TextInput, View } from "react-native";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Screen } from "@/components/ui/screen";
+import { Text } from "@/components/ui/text";
+import { useAuth } from "@/lib/auth/auth-context";
+import { friendlyAuthError } from "@/lib/auth/error-messages";
+import { saveProfile } from "@/lib/profile/profile";
+
+/**
+ * Final onboarding step — profile setup (PLAN.md §4.1, §6).
+ *
+ * Asks for two things and writes them to Firestore as the user's
+ * profile, plus flips `onboardingCompleted: true` so the auth gate
+ * (F6) knows this user has finished the flow.
+ *
+ * Check-in time uses preset chips (morning / midday / evening /
+ * night) rather than a custom time picker. Reasons:
+ *   - No extra native dependency.
+ *   - Calmer UX — no scroll wheel to fiddle with.
+ *   - The four windows cover when most people actually check in.
+ *   - Settings later will offer fine-grained control for users who
+ *     want a specific minute.
+ */
+
+const CHECK_IN_OPTIONS: { id: string; label: string; time: string }[] = [
+  { id: "morning", label: "Morning", time: "08:00" },
+  { id: "midday", label: "Midday", time: "12:00" },
+  { id: "evening", label: "Evening", time: "18:00" },
+  { id: "night", label: "Night", time: "21:00" },
+];
+
+export default function OnboardingProfile() {
+  const router = useRouter();
+  const { user } = useAuth();
+
+  const [name, setName] = useState("");
+  const [checkInId, setCheckInId] = useState<string>("evening");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canSubmit = name.trim().length > 0 && !submitting;
+
+  async function onSubmit() {
+    if (!canSubmit) return;
+    if (!user) {
+      router.replace("/(auth)/welcome");
+      return;
+    }
+
+    const choice = CHECK_IN_OPTIONS.find((o) => o.id === checkInId);
+    if (!choice) return;
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      await saveProfile(user.uid, {
+        name: name.trim(),
+        checkInTime: choice.time,
+        timezone:
+          Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC",
+      });
+      router.replace("/(tabs)/home");
+    } catch (err) {
+      setError(friendlyAuthError(err));
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Screen scroll>
+      <View className="gap-2">
+        <Text variant="title">Tell us a little about you</Text>
+        <Text variant="muted" className="mt-2">
+          Just enough to feel personal. You can change either of these
+          later.
+        </Text>
+      </View>
+
+      <View className="mt-8 gap-1">
+        <Text variant="caption">What should we call you?</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          autoCapitalize="words"
+          autoCorrect={false}
+          maxLength={40}
+          placeholder="Your first name or nickname"
+          placeholderTextColor="rgb(156 160 168)"
+          className="rounded-2xl border border-border bg-surface px-4 py-4 font-body text-base text-text"
+        />
+      </View>
+
+      <View className="mt-6 gap-2">
+        <Text variant="caption">When would you like to check in?</Text>
+        <Card>
+          <View className="flex-row flex-wrap gap-2">
+            {CHECK_IN_OPTIONS.map((option) => {
+              const selected = option.id === checkInId;
+              return (
+                <Pressable
+                  key={option.id}
+                  onPress={() => setCheckInId(option.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  className={`flex-1 items-center rounded-2xl px-3 py-3 ${
+                    selected
+                      ? "bg-primary"
+                      : "bg-bg border border-border"
+                  }`}
+                >
+                  <Text
+                    className={
+                      selected
+                        ? "font-body-semibold text-primary-fg"
+                        : "font-body-medium text-text"
+                    }
+                  >
+                    {option.label}
+                  </Text>
+                  <Text
+                    variant="caption"
+                    className={selected ? "text-primary-fg" : ""}
+                  >
+                    {option.time}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Card>
+      </View>
+
+      {error && (
+        <Text variant="caption" className="mt-4 text-crisis">
+          {error}
+        </Text>
+      )}
+
+      <View className="mt-8 mb-6">
+        <Button
+          label={submitting ? "Saving…" : "Finish"}
+          size="lg"
+          disabled={!canSubmit}
+          onPress={onSubmit}
+        />
+      </View>
+    </Screen>
+  );
+}
