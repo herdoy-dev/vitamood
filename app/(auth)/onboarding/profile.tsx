@@ -7,6 +7,7 @@ import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/lib/auth/auth-context";
 import { friendlyAuthError } from "@/lib/auth/error-messages";
+import { consumeOnboardingBirthYear } from "@/lib/onboarding/state";
 import { saveProfile } from "@/lib/profile/profile";
 
 /**
@@ -61,6 +62,10 @@ export default function OnboardingProfile() {
         checkInTime: choice.time,
         timezone:
           Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC",
+        // Picked up from the age gate via lib/onboarding/state.
+        // null for users who reached this screen without going
+        // through the gate (e.g. F6 resume after a partial onboarding).
+        birthYear: consumeOnboardingBirthYear(),
       });
       router.replace("/(tabs)/home");
     } catch (err) {

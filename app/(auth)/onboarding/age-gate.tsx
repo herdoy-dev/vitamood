@@ -4,6 +4,7 @@ import { TextInput, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { setOnboardingBirthYear } from "@/lib/onboarding/state";
 
 /**
  * Step 4 of onboarding — age gate (PLAN.md §4.1).
@@ -11,7 +12,7 @@ import { Text } from "@/components/ui/text";
  * Hard rules:
  *   - Under-16 users CANNOT proceed to sign-up. They are routed to
  *     the refusal screen, no Firebase account is ever created, and
- *     no DOB or year is stored anywhere.
+ *     for refused users no DOB or year is stored anywhere.
  *   - We ask for birth year only (not full DOB). It's sufficient for
  *     a conservative gate, respects the minimum-data principle in
  *     §9, and keeps the form to a single input.
@@ -19,9 +20,10 @@ import { Text } from "@/components/ui/text";
  *     user who is borderline (turns 16 later this year) is asked to
  *     wait. This is the right side to err on for a wellness app
  *     touching minors.
- *   - We don't pass the DOB through navigation. The next step
- *     (sign-up) doesn't need it; remembering it would be a privacy
- *     leak and a regulatory risk.
+ *   - For users who PASS the gate, the verified birth year is held
+ *     in lib/onboarding/state and persisted to Firestore by the
+ *     profile setup step (F5). The chat context fetcher uses it to
+ *     give the AI a rough sense of the user's age bracket.
  */
 const MIN_AGE = 16;
 const CURRENT_YEAR = new Date().getFullYear();
@@ -49,11 +51,15 @@ export default function AgeGate() {
 
     if (parsed > MAX_BIRTH_YEAR) {
       // Under 16 — refusal flow. Use replace so the back button can't
-      // return them here to try again.
+      // return them here to try again. Don't store the year — refused
+      // users leave no data behind.
       router.replace("/(auth)/onboarding/age-refusal");
       return;
     }
 
+    // Park the verified birth year in onboarding state so the
+    // profile setup screen can persist it after sign-up.
+    setOnboardingBirthYear(parsed);
     router.push("/(auth)/sign-up");
   }
 
