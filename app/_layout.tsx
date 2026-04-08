@@ -16,8 +16,10 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { LockScreen } from "@/components/lock/lock-screen";
 import { HelpButton } from "@/components/safety/help-button";
 import { AuthProvider } from "@/lib/auth/auth-context";
+import { BiometricLockProvider, useLock } from "@/lib/lock/lock-context";
 import "./global.css";
 
 SplashScreen.preventAutoHideAsync();
@@ -46,10 +48,25 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <Stack screenOptions={{ headerShown: false }} />
-        <HelpButton />
-        <StatusBar style="auto" />
+        <BiometricLockProvider>
+          <Stack screenOptions={{ headerShown: false }} />
+          <HelpButton />
+          <LockGate />
+          <StatusBar style="auto" />
+        </BiometricLockProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
+}
+
+/**
+ * Pulls the lock state from context and renders the LockScreen
+ * overlay when the app is locked. Lives as a child of
+ * BiometricLockProvider so it can use the hook — the provider
+ * itself can't render the gate because then it'd be its own parent.
+ */
+function LockGate() {
+  const { locked, loading } = useLock();
+  if (loading || !locked) return null;
+  return <LockScreen />;
 }

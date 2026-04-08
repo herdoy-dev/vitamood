@@ -1,13 +1,18 @@
 import { Feather } from "@expo/vector-icons";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
-import { Pressable, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Pressable, Switch, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/lib/auth/auth-context";
 import { friendlyAuthError } from "@/lib/auth/error-messages";
+import {
+  authenticateBiometric,
+  getBiometricCapability,
+} from "@/lib/lock/biometric";
+import { useLock } from "@/lib/lock/lock-context";
 import { getProfile, type Profile } from "@/lib/profile/profile";
 
 /**
@@ -19,10 +24,32 @@ import { getProfile, type Profile } from "@/lib/profile/profile";
 export default function Account() {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { enabled: lockEnabled, setEnabled: setLockEnabled } = useLock();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True if the device has biometric hardware AND something enrolled.
+  // Used to disable the toggle gracefully on simulators / phones
+  // without a fingerprint or face set up.
+  const [bioAvailable, setBioAvailable] = useState(false);
+
+  useEffect(() => {
+    getBiometricCapability()
+      .then((cap) => setBioAvailable(cap.available))
+      .catch(() => setBioAvailable(false));
+  }, []);
+
+  async function onToggleLock(next: boolean) {
+    if (next) {
+      // Require a fresh biometric to ENABLE the lock — otherwise
+      // someone with the user's unlocked phone could turn it on
+      // without the rightful owner ever seeing the prompt.
+      const ok = await authenticateBiometric();
+      if (!ok) return;
+    }
+    await setLockEnabled(next);
+  }
 
   // Refetch on focus so returning from edit-profile shows the
   // updated values immediately.
@@ -133,6 +160,30 @@ export default function Account() {
           >
             <Feather name="edit-2" size={18} color="rgb(108 112 122)" />
           </Pressable>
+        </View>
+      </Card>
+
+      <Card className="mt-3">
+        <View className="flex-row items-start justify-between gap-4">
+          <View className="flex-1 gap-1">
+            <Text variant="caption">Lock</Text>
+            <Text variant="body-medium">Biometric unlock</Text>
+            <Text variant="caption" className="mt-1 text-text-muted">
+              {bioAvailable
+                ? "Require fingerprint or face to open the app on this device. Takes effect on the next cold start."
+                : "Set up a fingerprint or face on your device to enable this."}
+            </Text>
+          </View>
+          <Switch
+            value={lockEnabled}
+            onValueChange={onToggleLock}
+            disabled={!bioAvailable}
+            trackColor={{
+              false: "rgb(230 226 220)",
+              true: "rgb(123 166 138)",
+            }}
+            thumbColor="rgb(255 255 255)"
+          />
         </View>
       </Card>
 
