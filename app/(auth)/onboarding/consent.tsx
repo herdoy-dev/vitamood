@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Switch, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { useAuth } from "@/lib/auth/auth-context";
 import { friendlyAuthError } from "@/lib/auth/error-messages";
 import { saveConsent, type ConsentPrefs } from "@/lib/profile/consent";
@@ -12,20 +12,15 @@ import { saveConsent, type ConsentPrefs } from "@/lib/profile/consent";
 /**
  * Granular consent step (PLAN.md §4.1).
  *
- * Runs after sign-up — this is the first time we have a uid to
- * attach the prefs to. Each toggle is independent: a bundled
- * "I agree to everything" wouldn't be valid consent under GDPR.
+ * Runs after sign-up — first time we have a uid to attach prefs to.
+ * Each toggle is independent: a bundled "I agree to everything"
+ * isn't valid consent under GDPR, so the shape matters.
  *
  * Defaults are deliberately on the cautious side:
- *   - storeChatHistory: ON  (the app is unusable without it)
- *   - aiMemoryEnabled:  OFF (sending context to GPT is a real privacy
- *                            cost; opt-in only)
- *   - safetyLogOptIn:   OFF (analytics-style data, opt-in only)
+ *   - storeChatHistory:  ON  (the app is unusable without it)
+ *   - aiMemoryEnabled:   OFF (sending context to GPT is real cost)
+ *   - safetyLogOptIn:    OFF (analytics-style data, opt-in only)
  *   - adaptiveReminders: OFF (no push by default — calmer)
- *
- * The Switch component is RN built-in. Tinted with the primary
- * sage so it matches the design system; raw color values used
- * because trackColor doesn't go through NativeWind.
  */
 export default function OnboardingConsent() {
   const router = useRouter();
@@ -46,8 +41,6 @@ export default function OnboardingConsent() {
 
   async function onSubmit() {
     if (!user) {
-      // Shouldn't happen — this screen is reached only after sign-up.
-      // Bail back to welcome rather than silently no-op.
       router.replace("/(auth)/welcome");
       return;
     }
@@ -63,15 +56,26 @@ export default function OnboardingConsent() {
   }
 
   return (
-    <Screen scroll>
-      <View className="gap-2">
-        <Text variant="title">Your choices</Text>
-        <Text variant="muted" className="mt-2">
-          You can change any of these later in settings.
-        </Text>
-      </View>
-
-      <View className="mt-6 gap-3">
+    <OnboardingShell
+      title="Your choices"
+      subtitle="You can change any of these later in settings."
+      footer={
+        <>
+          {error && (
+            <Text variant="caption" className="text-crisis">
+              {error}
+            </Text>
+          )}
+          <Button
+            label={submitting ? "Saving…" : "Continue"}
+            size="lg"
+            disabled={submitting}
+            onPress={onSubmit}
+          />
+        </>
+      }
+    >
+      <View className="gap-3">
         <ConsentRow
           title="Save my conversations"
           description="Store chat history so you can pick up where you left off."
@@ -97,22 +101,7 @@ export default function OnboardingConsent() {
           onValueChange={() => toggle("adaptiveReminders")}
         />
       </View>
-
-      {error && (
-        <Text variant="caption" className="mt-4 text-crisis">
-          {error}
-        </Text>
-      )}
-
-      <View className="mt-8 mb-6">
-        <Button
-          label={submitting ? "Saving…" : "Continue"}
-          size="lg"
-          disabled={submitting}
-          onPress={onSubmit}
-        />
-      </View>
-    </Screen>
+    </OnboardingShell>
   );
 }
 

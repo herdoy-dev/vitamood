@@ -1,10 +1,9 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { useAuth } from "@/lib/auth/auth-context";
 import { friendlyAuthError } from "@/lib/auth/error-messages";
 import { consumeOnboardingBirthYear } from "@/lib/onboarding/state";
@@ -18,12 +17,9 @@ import { saveProfile } from "@/lib/profile/profile";
  * (F6) knows this user has finished the flow.
  *
  * Check-in time uses preset chips (morning / midday / evening /
- * night) rather than a custom time picker. Reasons:
- *   - No extra native dependency.
- *   - Calmer UX — no scroll wheel to fiddle with.
- *   - The four windows cover when most people actually check in.
- *   - Settings later will offer fine-grained control for users who
- *     want a specific minute.
+ * night) rather than a custom time picker — calmer, no extra
+ * native dep, the four windows cover when most people actually
+ * check in. Settings later will offer fine-grained control.
  */
 
 const CHECK_IN_OPTIONS: { id: string; label: string; time: string }[] = [
@@ -64,7 +60,7 @@ export default function OnboardingProfile() {
           Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC",
         // Picked up from the age gate via lib/onboarding/state.
         // null for users who reached this screen without going
-        // through the gate (e.g. F6 resume after a partial onboarding).
+        // through the gate (F6 resume after a partial onboarding).
         birthYear: consumeOnboardingBirthYear(),
       });
       router.replace("/(tabs)/home");
@@ -75,32 +71,42 @@ export default function OnboardingProfile() {
   }
 
   return (
-    <Screen scroll>
-      <View className="gap-2">
-        <Text variant="title">Tell us a little about you</Text>
-        <Text variant="muted" className="mt-2">
-          Just enough to feel personal. You can change either of these
-          later.
-        </Text>
-      </View>
+    <OnboardingShell
+      title="Tell us a little about you"
+      subtitle="Just enough to feel personal. You can change either of these later."
+      footer={
+        <>
+          {error && (
+            <Text variant="caption" className="text-crisis">
+              {error}
+            </Text>
+          )}
+          <Button
+            label={submitting ? "Saving…" : "Finish"}
+            size="lg"
+            disabled={!canSubmit}
+            onPress={onSubmit}
+          />
+        </>
+      }
+    >
+      <View className="gap-7">
+        <View className="gap-2">
+          <Text variant="caption">What should we call you?</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            autoCorrect={false}
+            maxLength={40}
+            placeholder="Your first name or nickname"
+            placeholderTextColor="rgb(156 160 168)"
+            className="rounded-2xl border border-border bg-surface px-5 py-4 font-body text-base text-text"
+          />
+        </View>
 
-      <View className="mt-8 gap-1">
-        <Text variant="caption">What should we call you?</Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
-          autoCorrect={false}
-          maxLength={40}
-          placeholder="Your first name or nickname"
-          placeholderTextColor="rgb(156 160 168)"
-          className="rounded-2xl border border-border bg-surface px-4 py-4 font-body text-base text-text"
-        />
-      </View>
-
-      <View className="mt-6 gap-2">
-        <Text variant="caption">When would you like to check in?</Text>
-        <Card>
+        <View className="gap-3">
+          <Text variant="caption">When would you like to check in?</Text>
           <View className="flex-row flex-wrap gap-2">
             {CHECK_IN_OPTIONS.map((option) => {
               const selected = option.id === checkInId;
@@ -110,10 +116,10 @@ export default function OnboardingProfile() {
                   onPress={() => setCheckInId(option.id)}
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
-                  className={`flex-1 items-center rounded-2xl px-3 py-3 ${
+                  className={`flex-1 items-center rounded-2xl px-3 py-4 ${
                     selected
                       ? "bg-primary"
-                      : "bg-bg border border-border"
+                      : "bg-surface border border-border"
                   }`}
                 >
                   <Text
@@ -135,23 +141,8 @@ export default function OnboardingProfile() {
               );
             })}
           </View>
-        </Card>
+        </View>
       </View>
-
-      {error && (
-        <Text variant="caption" className="mt-4 text-crisis">
-          {error}
-        </Text>
-      )}
-
-      <View className="mt-8 mb-6">
-        <Button
-          label={submitting ? "Saving…" : "Finish"}
-          size="lg"
-          disabled={!canSubmit}
-          onPress={onSubmit}
-        />
-      </View>
-    </Screen>
+    </OnboardingShell>
   );
 }
