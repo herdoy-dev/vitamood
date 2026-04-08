@@ -2,6 +2,22 @@ import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 /**
+ * Fixed vocabulary of onboarding goals (PLAN.md §4.1). Small and
+ * stable so the chat context fetcher and future insights can group
+ * users meaningfully without arbitrary free-text strings.
+ */
+export const PROFILE_GOALS = [
+  "Better sleep",
+  "Less anxiety",
+  "More energy",
+  "Build a routine",
+  "Be kinder to myself",
+  "Manage stress",
+  "Feel more present",
+] as const;
+export type ProfileGoal = (typeof PROFILE_GOALS)[number];
+
+/**
  * User profile shape (subset of PLAN.md §6).
  *
  * checkInTime is stored as 24-hour HH:mm in the user's local
@@ -14,12 +30,18 @@ import { db } from "@/lib/firebase";
  * context to give the AI a rough sense of the user's age bracket.
  * Optional because users created before this field landed have no
  * value, and we don't backfill.
+ *
+ * goals is an optional multi-select from PROFILE_GOALS captured
+ * during the profile setup step. Used by the chat context fetcher
+ * and (later) the weekly insight summary to be specific instead of
+ * generic.
  */
 export interface ProfileInput {
   name: string;
   checkInTime: string; // "HH:mm"
   timezone: string;    // IANA, e.g. "Asia/Dhaka"
   birthYear?: number | null;
+  goals?: ProfileGoal[];
 }
 
 /**
@@ -43,6 +65,7 @@ export interface Profile {
   checkInTime: string;
   timezone: string;
   birthYear: number | null;
+  goals: ProfileGoal[];
 }
 
 /**
@@ -62,11 +85,20 @@ export async function getProfile(uid: string): Promise<Profile | null> {
     checkInTime: p.checkInTime ?? "",
     timezone: p.timezone ?? "UTC",
     birthYear: p.birthYear ?? null,
+    goals: (p.goals as ProfileGoal[] | undefined) ?? [],
   };
 }
 
 export async function saveProfile(uid: string, input: ProfileInput) {
   const userRef = doc(db, "users", uid);
+
+  // Filter goals to the known vocabulary so a stale client can't
+  // poison the queryable field with arbitrary strings.
+  const validGoals =
+    input.goals?.filter((g): g is ProfileGoal =>
+      (PROFILE_GOALS as readonly string[]).includes(g),
+    ) ?? [];
+
   await setDoc(
     userRef,
     {
@@ -75,6 +107,7 @@ export async function saveProfile(uid: string, input: ProfileInput) {
         checkInTime: input.checkInTime,
         timezone: input.timezone,
         birthYear: input.birthYear ?? null,
+        goals: validGoals,
         createdAt: serverTimestamp(),
       },
       onboardingCompleted: true,
