@@ -1,10 +1,12 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { StepProgress } from "@/components/exercises/step-progress";
 import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
 /**
@@ -150,12 +152,16 @@ export function LovingKindnessPlayer() {
   return (
     <Screen>
       <View className="flex-1 justify-between py-8">
-        <View className="items-center gap-2">
-          <Text variant="caption">Step {index + 1} of {STAGES.length}</Text>
+        <View className="gap-3">
           <Text variant="title">Loving-kindness</Text>
+          <StepProgress current={index + 1} total={STAGES.length} />
         </View>
 
-        <View className="gap-6">
+        <Animated.View
+          key={index}
+          entering={FadeIn.duration(800)}
+          className="gap-6"
+        >
           <Text variant="subtitle" className="text-center text-text-muted">
             {stage.target}
           </Text>
@@ -168,7 +174,7 @@ export function LovingKindnessPlayer() {
               ))}
             </View>
           </Card>
-        </View>
+        </Animated.View>
 
         <View className="gap-3">
           <Button

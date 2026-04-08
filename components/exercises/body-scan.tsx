@@ -1,9 +1,11 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { StepProgress } from "@/components/exercises/step-progress";
 import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
 /**
@@ -110,16 +112,20 @@ export function BodyScanPlayer() {
   return (
     <Screen>
       <View className="flex-1 justify-between py-8">
-        <View className="items-center gap-2">
-          <Text variant="caption">Step {index + 1} of {STEPS.length}</Text>
+        <View className="gap-3">
           <Text variant="title">Body scan</Text>
+          <StepProgress current={index + 1} total={STEPS.length} />
         </View>
 
-        <View className="items-center gap-6 px-2">
+        <Animated.View
+          key={index}
+          entering={FadeIn.duration(700)}
+          className="items-center gap-6 px-2"
+        >
           <Text variant="display" className="text-text text-center">
             {STEPS[index]}
           </Text>
-        </View>
+        </Animated.View>
 
         <View className="gap-3">
           <Button

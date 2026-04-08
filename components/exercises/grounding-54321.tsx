@@ -1,10 +1,12 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { StepProgress } from "@/components/exercises/step-progress";
 import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
 /**
@@ -128,12 +130,19 @@ export function Grounding54321Player() {
   return (
     <Screen>
       <View className="flex-1 justify-between py-8">
-        <View className="items-center gap-2">
-          <Text variant="caption">Step {index + 1} of {STEPS.length}</Text>
+        <View className="gap-3">
           <Text variant="title">5-4-3-2-1 grounding</Text>
+          <StepProgress current={index + 1} total={STEPS.length} />
         </View>
 
-        <View className="items-center gap-6">
+        {/* Keying on the index forces a re-mount on each step
+            change, which triggers the entering animation. The fade
+            is short so it doesn't fight the user-paced rhythm. */}
+        <Animated.View
+          key={index}
+          entering={FadeIn.duration(450)}
+          className="items-center gap-6"
+        >
           <Text className="text-7xl text-primary">{step.count}</Text>
           <Text variant="display" className="text-text text-center px-4">
             {step.prompt}
@@ -143,7 +152,7 @@ export function Grounding54321Player() {
               {step.hint}
             </Text>
           </Card>
-        </View>
+        </Animated.View>
 
         <View className="gap-3">
           <Button
