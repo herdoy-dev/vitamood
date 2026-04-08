@@ -57,9 +57,7 @@ export default function OnboardingSafety() {
         <Button
           label="I understand"
           size="lg"
-          // F3 will push to /(auth)/onboarding/age-gate. For now we
-          // hand off straight to sign-up so the flow stays connected.
-          onPress={() => router.push("/(auth)/sign-up")}
+          onPress={() => router.push("/(auth)/onboarding/age-gate")}
         />
       </View>
     </Screen>
