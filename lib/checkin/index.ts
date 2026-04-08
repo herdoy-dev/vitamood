@@ -1,4 +1,14 @@
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  documentId,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 /**
@@ -88,4 +98,67 @@ export async function getTodayCheckIn(uid: string): Promise<CheckIn | null> {
     note: data.note ?? undefined,
     createdAt: data.createdAt?.toDate?.() ?? null,
   };
+}
+
+/**
+ * One day in a check-in window. Includes days the user didn't check
+ * in (`checkIn` is null) so the insights chart has a stable x-axis
+ * with visible gaps.
+ */
+export interface CheckInDay {
+  dateKey: string; // "YYYY-MM-DD"
+  date: Date;
+  checkIn: CheckIn | null;
+}
+
+/**
+ * Fetch the last `days` days as a fully-populated window. Days the
+ * user didn't check in get a `null` checkIn so the chart can render
+ * gaps without the caller doing date arithmetic.
+ *
+ * Uses a single Firestore range query against the document id (the
+ * check-in collection's docs are keyed YYYY-MM-DD which sorts
+ * lexically the same as chronologically). One round trip regardless
+ * of how many days are in the window — much cheaper than N getDoc
+ * calls when the user is active.
+ */
+export async function getRecentDays(
+  uid: string,
+  days: number = 7,
+): Promise<CheckInDay[]> {
+  const today = new Date();
+  const window: CheckInDay[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    window.push({ dateKey: checkInDateKey(d), date: d, checkIn: null });
+  }
+  if (window.length === 0) return window;
+
+  const oldest = window[0].dateKey;
+  const newest = window[window.length - 1].dateKey;
+
+  const ref = collection(db, "users", uid, "checkins");
+  const q = query(
+    ref,
+    where(documentId(), ">=", oldest),
+    where(documentId(), "<=", newest),
+  );
+  const snap = await getDocs(q);
+
+  const byDate = new Map<string, CheckIn>();
+  snap.forEach((d) => {
+    const data = d.data();
+    byDate.set(d.id, {
+      mood: data.mood,
+      energy: data.energy,
+      note: data.note ?? undefined,
+      createdAt: data.createdAt?.toDate?.() ?? null,
+    });
+  });
+
+  return window.map((day) => ({
+    ...day,
+    checkIn: byDate.get(day.dateKey) ?? null,
+  }));
 }
