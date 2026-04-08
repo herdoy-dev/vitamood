@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 import { Card } from "@/components/ui/card";
@@ -10,8 +11,18 @@ import { EXERCISES, formatDuration } from "@/constants/exercises";
  *
  * The catalog itself is bundled in constants/exercises.ts so the
  * tab works offline. Tapping a card opens the player at
- * /exercise/[id], which lands in J2+. For now most players are
- * stubs — only the ones we ship in J2-J5 will actually run.
+ * /exercise/[id]; every exercise has a real player as of J5.
+ *
+ * Card design notes:
+ *   - Icon sits in a tinted bg-bg circle so it visually steps
+ *     forward off the lifted bg-surface card. Without the plate the
+ *     bare emoji floats and reads as accidental.
+ *   - Chevron on the right makes the tappability obvious without
+ *     screaming "BUTTON" — quieter than a Begin button on every row.
+ *   - Duration moved to a small caption beside the title rather than
+ *     under it so the description has the full row width.
+ *   - active:opacity-80 on the Pressable gives a calm tap feedback
+ *     without springing or scaling.
  */
 export default function ExercisesTab() {
   const router = useRouter();
@@ -39,19 +50,32 @@ export default function ExercisesTab() {
                 params: { id: exercise.id },
               })
             }
+            className="active:opacity-80"
           >
             <Card>
-              <View className="flex-row gap-4">
-                <Text className="text-4xl">{exercise.icon}</Text>
+              <View className="flex-row items-center gap-4">
+                <View className="h-14 w-14 items-center justify-center rounded-full bg-bg">
+                  <Text className="text-3xl">{exercise.icon}</Text>
+                </View>
+
                 <View className="flex-1">
-                  <Text variant="subtitle">{exercise.title}</Text>
-                  <Text variant="caption" className="mt-1">
-                    {formatDuration(exercise.durationSec)}
-                  </Text>
-                  <Text variant="body" className="mt-2 text-text-muted">
+                  <View className="flex-row items-baseline gap-2">
+                    <Text variant="subtitle">{exercise.title}</Text>
+                    <Text variant="caption">·</Text>
+                    <Text variant="caption">
+                      {formatDuration(exercise.durationSec)}
+                    </Text>
+                  </View>
+                  <Text variant="body" className="mt-1 text-text-muted">
                     {exercise.description}
                   </Text>
                 </View>
+
+                <Feather
+                  name="chevron-right"
+                  size={20}
+                  color="rgb(108 112 122)"
+                />
               </View>
             </Card>
           </Pressable>
