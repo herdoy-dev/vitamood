@@ -1,4 +1,4 @@
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Linking, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,91 +24,82 @@ export default function CrisisScreen() {
   const region = pickHotlines();
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: "Need help right now",
-          headerStyle: { backgroundColor: "transparent" },
-          headerShadowVisible: false,
-        }}
-      />
-      <Screen scroll>
-        <Text variant="title">You are not alone.</Text>
-        <Text variant="muted" className="mt-2">
-          If you are in immediate danger, please reach out. These
-          services are free and confidential.
-        </Text>
+    <Screen scroll>
+      <Text variant="title">You are not alone.</Text>
+      <Text variant="muted" className="mt-2">
+        If you are in immediate danger, please reach out. These services
+        are free and confidential.
+      </Text>
 
-        <View className="mt-6 gap-3">
-          {region.hotlines.map((hotline) => (
-            <Card key={hotline.name}>
-              <Text variant="subtitle">{hotline.name}</Text>
-              <Text variant="caption" className="mt-1">
-                {hotline.description}
-              </Text>
-              <View className="mt-4 gap-2">
-                {hotline.phone && (
-                  <Button
-                    label={`Call ${formatPhone(hotline.phone)}`}
-                    variant="crisis"
-                    onPress={() => Linking.openURL(`tel:${hotline.phone}`)}
-                  />
-                )}
-                {hotline.text && (
-                  <Button
-                    label={hotline.text}
-                    variant="ghost"
-                    onPress={() => {
-                      // Best-effort: opens the SMS composer if the
-                      // text instruction starts with "Text X to NUM"
-                      const match = hotline.text?.match(/(\d{3,})/);
-                      if (match) Linking.openURL(`sms:${match[1]}`);
-                    }}
-                  />
-                )}
-                {hotline.url && (
-                  <Button
-                    label="Open website"
-                    variant="ghost"
-                    onPress={() => Linking.openURL(hotline.url!)}
-                  />
-                )}
-              </View>
-            </Card>
-          ))}
-        </View>
-
-        <View className="mt-8">
-          <Text variant="subtitle">{GROUNDING_5_4_3_2_1.title}</Text>
-          <Text variant="muted" className="mt-2">
-            {GROUNDING_5_4_3_2_1.description}
-          </Text>
-          <Card className="mt-4">
-            {GROUNDING_5_4_3_2_1.steps.map((step, i) => (
-              <View
-                key={step}
-                className={`flex-row gap-3 ${i > 0 ? "mt-3" : ""}`}
-              >
-                <Text variant="body-medium" className="text-primary">
-                  {i + 1}.
-                </Text>
-                <Text variant="body" className="flex-1">
-                  {step}
-                </Text>
-              </View>
-            ))}
+      <View className="mt-6 gap-3">
+        {region.hotlines.map((hotline) => (
+          <Card key={hotline.name}>
+            <Text variant="subtitle">{hotline.name}</Text>
+            <Text variant="caption" className="mt-1">
+              {hotline.description}
+            </Text>
+            <View className="mt-4 gap-2">
+              {hotline.phone && (
+                <Button
+                  label={`Call ${formatPhone(hotline.phone)}`}
+                  variant="crisis"
+                  onPress={() => Linking.openURL(`tel:${hotline.phone}`)}
+                />
+              )}
+              {hotline.text && (
+                <Button
+                  label={hotline.text}
+                  variant="ghost"
+                  onPress={() => {
+                    // Best-effort: opens the SMS composer if the text
+                    // instruction starts with "Text X to NUM"
+                    const match = hotline.text?.match(/(\d{3,})/);
+                    if (match) Linking.openURL(`sms:${match[1]}`);
+                  }}
+                />
+              )}
+              {hotline.url && (
+                <Button
+                  label="Open website"
+                  variant="ghost"
+                  onPress={() => Linking.openURL(hotline.url!)}
+                />
+              )}
+            </View>
           </Card>
-        </View>
+        ))}
+      </View>
 
-        <View className="mt-8 mb-6">
-          <Button
-            label="I'm okay for now"
-            variant="ghost"
-            onPress={() => router.back()}
-          />
-        </View>
-      </Screen>
-    </>
+      <View className="mt-8">
+        <Text variant="subtitle">{GROUNDING_5_4_3_2_1.title}</Text>
+        <Text variant="muted" className="mt-2">
+          {GROUNDING_5_4_3_2_1.description}
+        </Text>
+        <Card className="mt-4">
+          {GROUNDING_5_4_3_2_1.steps.map((step, i) => (
+            <View
+              key={step}
+              className={`flex-row gap-3 ${i > 0 ? "mt-3" : ""}`}
+            >
+              <Text variant="body-medium" className="text-primary">
+                {i + 1}.
+              </Text>
+              <Text variant="body" className="flex-1">
+                {step}
+              </Text>
+            </View>
+          ))}
+        </Card>
+      </View>
+
+      <View className="mt-8 mb-6">
+        <Button
+          label="I'm okay for now"
+          variant="ghost"
+          onPress={() => router.back()}
+        />
+      </View>
+    </Screen>
   );
 }
 

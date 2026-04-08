@@ -27,8 +27,17 @@ export function HelpButton() {
   const segments = useSegments() as string[];
   const insets = useSafeAreaInsets();
 
-  // Hide on the crisis screen itself, and on the (future) check-in modal
-  if (segments.includes("crisis") || segments.includes("checkin")) {
+  // Hide on:
+  //   - the crisis screen itself (no point linking to where you are)
+  //   - the check-in modal (would fight a vertical sheet for tap area)
+  //   - the (auth) flow (welcome/sign-in/onboarding screens have their
+  //     own crisis link inline near the safety disclaimer per §4.1, and
+  //     the floating button collides with their bottom CTAs)
+  if (
+    segments.includes("crisis") ||
+    segments.includes("checkin") ||
+    segments.includes("(auth)")
+  ) {
     return null;
   }
 
