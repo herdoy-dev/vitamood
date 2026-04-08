@@ -23,7 +23,7 @@ export default function Welcome() {
           <Button
             label="Get started"
             size="lg"
-            onPress={() => router.push("/(auth)/sign-up")}
+            onPress={() => router.push("/(auth)/onboarding/intro")}
           />
           <Button
             label="I already have an account"
