@@ -5,6 +5,17 @@ module.exports = {
   darkMode: "class",
   theme: {
     extend: {
+      fontFamily: {
+        // Headings — DM Sans (PLAN.md §8)
+        heading: ["DMSans-Regular"],
+        "heading-medium": ["DMSans-Medium"],
+        "heading-semibold": ["DMSans-SemiBold"],
+        "heading-bold": ["DMSans-Bold"],
+        // Body — Inter
+        body: ["Inter-Regular"],
+        "body-medium": ["Inter-Medium"],
+        "body-semibold": ["Inter-SemiBold"],
+      },
       colors: {
         // Semantic tokens — drive light/dark via CSS vars in app/global.css
         bg: "rgb(var(--bg) / <alpha-value>)",
