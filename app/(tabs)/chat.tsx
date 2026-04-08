@@ -11,6 +11,9 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { useAuth } from "@/lib/auth/auth-context";
+import { getChatContext, type ChatContext } from "@/lib/chat/context";
+import { generateMockReply } from "@/lib/chat/mock-reply";
 
 /**
  * Chat tab — AI companion (PLAN.md §4.3).
@@ -42,24 +45,40 @@ interface Message {
   createdAt: number;
 }
 
-const MOCK_REPLIES = [
-  "I hear you. That sounds like a lot to carry today.",
-  "Thank you for sharing that with me. Take a breath if you need one.",
-  "It makes sense that you'd feel that way. What part feels heaviest right now?",
-  "You're allowed to feel this. There's no rush to fix anything.",
-  "I notice you said that. Can you tell me a little more?",
-];
-
 function makeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export default function ChatTab() {
   const router = useRouter();
+  const { user } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
+  // Pulled once on mount — name, today's check-in, today's exercises,
+  // birth year. The mock reply generator uses this to be specific
+  // instead of generic. Stays null until the first fetch resolves;
+  // we can still send messages while it's null, the replies will
+  // just be the contextless variants.
+  const [chatContext, setChatContext] = useState<ChatContext | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    getChatContext(user.uid)
+      .then((c) => {
+        if (!cancelled) setChatContext(c);
+      })
+      .catch((err) => {
+        // Don't block chat — we can still send messages with no
+        // context, the replies will just be more generic.
+        console.warn("Failed to load chat context:", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Auto-scroll to the latest message whenever the list grows.
   useEffect(() => {
@@ -72,6 +91,10 @@ export default function ChatTab() {
     const trimmed = draft.trim();
     if (!trimmed || thinking) return;
 
+    // Snapshot whether this is the first user message *before* we
+    // append it — the reply generator wants the count from before.
+    const isFirstMessage = messages.filter((m) => m.role === "user").length === 0;
+
     const userMessage: Message = {
       id: makeId(),
       role: "user",
@@ -82,13 +105,21 @@ export default function ChatTab() {
     setDraft("");
     setThinking(true);
 
-    // Mock "AI" reply on a short delay so the typing indicator
-    // gets a moment to land.
+    // Generate a context-aware mock reply on a short delay so the
+    // typing indicator gets a moment to land. Real LLM lands in K4.
     setTimeout(() => {
+      const replyText = chatContext
+        ? generateMockReply({
+            userMessage: trimmed,
+            context: chatContext,
+            isFirstMessage,
+          })
+        : "I'm here. Tell me a little more about what's going on.";
+
       const reply: Message = {
         id: makeId(),
         role: "assistant",
-        content: MOCK_REPLIES[messages.length % MOCK_REPLIES.length],
+        content: replyText,
         createdAt: Date.now(),
       };
       setMessages((prev) => [...prev, reply]);
