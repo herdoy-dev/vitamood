@@ -11,8 +11,8 @@ Build a **non-clinical, privacy-first wellness companion** that feels like a kin
 ### Guiding Principles
 
 - **Calm over engagement** — no streak guilt, no dark patterns, no notifications spam
-- **Safety first** — crisis detection and human-help routing are non-negotiable
-- **Privacy by design** — minimal data, encrypted, user-owned
+- **Safety first** — crisis routing is non-negotiable; the always-visible help button is the primary safety net, automated detection is only a backstop
+- **Privacy by design** — minimum data collected, sensitive fields client-side encrypted before they ever reach Firestore
 - **Minimal UI** — one screen, one feeling
 - **Inclusive tone** — non-judgmental, culturally aware, accessible
 
@@ -29,23 +29,64 @@ Build a **non-clinical, privacy-first wellness companion** that feels like a kin
 
 ## 3. Tech Stack
 
+### Currently Installed
+
+| Layer | Technology | Version | Notes |
+|---|---|---|---|
+| **Mobile framework** | React Native + Expo SDK | RN 0.81.5 / Expo SDK 54 | New Architecture enabled, React Compiler enabled |
+| **Language** | TypeScript | ~5.9 | Strict mode |
+| **React** | React | 19.1 | |
+| **Navigation** | Expo Router | ~6.0 | File-based, typed routes enabled |
+| **Styling** | NativeWind + Tailwind CSS | nw 4.2 / tw 3.4 | Wired via `babel.config.js` + `metro.config.js`, global stylesheet at `app/global.css` |
+| **Animation** | react-native-reanimated + react-native-worklets | ~4.1 / 0.5 | |
+| **Gestures** | react-native-gesture-handler | ~2.28 | |
+| **Native primitives** | react-native-screens, react-native-safe-area-context | ~4.16 / ~5.6 | |
+| **Web target** | react-native-web + react-dom | ~0.21 / 19.1 | Static web output via Metro |
+| **Images** | expo-image | ~3.0 | |
+| **Splash / status / system UI** | expo-splash-screen, expo-status-bar, expo-system-ui | SDK 54 | |
+| **Misc Expo modules** | expo-font, expo-constants, expo-linking, expo-haptics, expo-symbols, expo-web-browser | SDK 54 | |
+| **Icons** | @expo/vector-icons | ^15.0 | (likely add `lucide-react-native` later) |
+| **Lint / format** | eslint + eslint-config-expo, prettier-plugin-tailwindcss | | |
+| **Package manager** | Bun | 1.3+ | `bun.lock` committed |
+| **Dev tunneling** | @expo/ngrok | ^4.1 | For Expo Go over tunnel |
+
+### Decided — next to install (MVP)
+
+Backend is **locked in on Firebase**. Auth via **Firebase Authentication**, persistence via **Cloud Firestore**, server-side logic (OpenAI proxy, lazy insight generator, moderation pipeline) in **Cloud Functions for Firebase**, file storage via **Firebase Storage**. `google-services.json` for the Android app is already present in the repo (gitignored).
+
+> **MVP uses the Firebase JS SDK, not React Native Firebase.** The JS SDK supports Auth + Firestore + Functions + Storage in pure JavaScript, keeps Expo Go working for fast iteration, and is enough for everything we need until we add FCM, Crashlytics, or Google Sign-In. We migrate to React Native Firebase at Milestone 7 (Polish & Beta) when those features are actually wired up — the API surface is similar enough that the swap is mostly mechanical.
+
+| Concern | Package | Notes |
+|---|---|---|
+| **Firebase SDK** | `firebase` (modular v10+) | JS SDK, works in Expo Go |
+| **Auth persistence on RN** | `firebase/auth` with `getReactNativePersistence(AsyncStorage)` | Required so users stay logged in across app restarts |
+| **AsyncStorage** | `@react-native-async-storage/async-storage` | Backing store for auth persistence |
+| **Auth providers** | Email/password, Google Sign-In via `expo-auth-session` | Google Sign-In **first** (one-tap on Android), email/password second; Apple later |
+| **Database** | `firebase/firestore` | Schema in §6; offline persistence enabled via `initializeFirestore({ localCache: persistentLocalCache(...) })` |
+| **Storage** | `firebase/storage` | Voice notes, exported PDFs |
+| **Functions client** | `firebase/functions` | Calls the OpenAI proxy |
+| **Biometric lock** | `expo-local-authentication` | Wraps Android BiometricPrompt / iOS Face ID |
+| **Client-side encryption** | `expo-crypto` + `expo-secure-store` | Encrypts chat content / journal text before writing to Firestore; key derived from password and stored in OS keystore |
+
+### Planned (later phases — requires custom dev client)
+
+These add native modules and force the move from Expo Go to an EAS-built custom dev client. Postpone until Milestone 7.
+
 | Layer | Technology | Why |
 |---|---|---|
-| **Mobile framework** | React Native (Expo SDK, latest) | Single codebase, fast iteration, OTA updates |
-| **Styling** | NativeWind (Tailwind for RN) | Rapid, consistent, minimal styling |
-| **Navigation** | Expo Router (file-based) | Clean, modern routing |
-| **State** | Zustand + React Query | Lightweight, no boilerplate |
-| **Backend / DB** | Firebase (Firestore + Auth + Storage + Functions) | Fast to ship, scales, generous free tier |
-| **Auth** | Firebase Auth (Google, Email, Apple later) | Native, secure, biometric support via expo-local-authentication |
-| **AI** | OpenAI API (GPT-4o-mini for chat, GPT-4o for deeper sessions) | Strong reasoning, function calling, moderation API |
-| **Moderation / Safety** | OpenAI Moderation API + custom keyword layer | Crisis detection |
-| **Audio** | expo-av for playback, expo-speech for TTS (later ElevenLabs) | Guided exercises |
-| **Analytics** | Firebase Analytics + Crashlytics (privacy-respecting events only) | Crash + funnel monitoring |
-| **Push** | Firebase Cloud Messaging (FCM) | Adaptive reminders |
-| **Local storage** | MMKV (encrypted) | Fast, secure local cache |
-| **Forms / inputs** | react-hook-form + zod | Validation |
-| **Icons** | lucide-react-native | Clean, consistent |
-| **Animation** | react-native-reanimated + moti | Smooth, calming transitions |
+| **Migrate Firebase** | `@react-native-firebase/{app,auth,firestore,functions,storage}` | Better offline, native FCM/Crashlytics integration |
+| **Push** | `@react-native-firebase/messaging` (FCM) | Adaptive reminders |
+| **Crash / analytics** | `@react-native-firebase/{analytics,crashlytics}` | Privacy-respecting events only |
+| **State** | Zustand + TanStack Query | Lightweight, no boilerplate |
+| **AI** | OpenAI API (GPT-4o-mini chat, GPT-4o deep sessions) | Called via Cloud Function — never from client. Requires Zero Data Retention agreement on the OpenAI org (see §9) |
+| **Moderation / Safety** | OpenAI Moderation API + custom keyword layer | **Backstop only**, never primary safety |
+| **Audio** | expo-audio (replaces deprecated expo-av), expo-speech, later ElevenLabs | Guided exercises + TTS |
+| **Local storage** | react-native-mmkv (encrypted) | Only if Firestore offline + AsyncStorage proves insufficient |
+| **Forms / validation** | react-hook-form + zod | |
+| **Icons (calm set)** | lucide-react-native | |
+| **Animation helpers** | moti | On top of reanimated |
+| **Charts** | Victory Native or @shopify/react-native-skia | Mood line chart |
+| **Subscriptions (Phase 2)** | RevenueCat | Cross-platform IAP |
 
 ### Platform Strategy
 - **Phase 1 (Android-first):** Build, polish, and launch on Google Play
@@ -59,7 +100,13 @@ Build a **non-clinical, privacy-first wellness companion** that feels like a kin
 ### Phase 1 — MVP (Launch Android)
 
 #### 4.1 Onboarding
-- 4-screen warm intro (purpose, privacy, safety disclaimer, consent)
+- 5-screen warm intro: purpose → privacy → safety disclaimer → **age gate** → granular consent
+- **Age gate** — explicit DOB picker. Under-16 users see a kind "this app isn't right for you yet" screen with hotline resources, and no account is created. (GDPR-K / COPPA / Play mental-health policy)
+- **Granular consent** — separate toggles, not a bundled "I agree":
+  - "Store my chats so I can pick up where I left off" (chat history)
+  - "Use my recent messages as context for next time" (AI memory)
+  - "Help improve crisis safety by reviewing anonymized incidents" (safety log opt-in)
+  - "Show me adaptive reminders" (push)
 - Choose name / nickname
 - Pick a daily check-in time
 - **Crisis disclaimer screen** — "I am not a therapist. If you are in crisis, tap here."
@@ -70,7 +117,8 @@ Build a **non-clinical, privacy-first wellness companion** that feels like a kin
 - Energy slider (1–5)
 - Optional 1-line text or voice note
 - Takes <30 seconds
-- Stored in Firestore under `users/{uid}/checkins/{date}`
+- **Offline-first**: writes go through Firestore's persistent local cache and sync when network returns. A failed network call must never lose a check-in or surface an error to the user.
+- Stored in Firestore under `users/{uid}/checkins/{date}`. The optional text/voice note is client-side encrypted before upload.
 
 #### 4.3 AI Companion Chat
 - Conversational interface powered by GPT-4o-mini
@@ -96,10 +144,15 @@ Build a **non-clinical, privacy-first wellness companion** that feels like a kin
 - No scores. No grades. No comparison.
 
 #### 4.6 Safety Layer (NON-NEGOTIABLE)
-- Always-visible "Need help now?" button → 988 / Samaritans / local hotlines
-- Keyword + Moderation API pre-screen on every chat message
-- If high-risk: AI response is replaced with crisis card + hotline + grounding exercise
-- Logged anonymously for safety review (with user consent)
+
+The **always-visible "Need help now" button is the primary safety net**, not the automated detection. Real crisis language is metaphorical, sarcastic, multilingual, and frequently slips past keyword scans and the OpenAI Moderation API. Treat automated detection as a backstop only, and never advertise it as more.
+
+- **"Need help now?" button** present on every screen — onboarding, home, chat, exercises, settings, splash. Tapping it shows a crisis card with hotlines.
+- **Hardcoded hotline list** bundled in the app binary (`constants/resources.ts`), so the crisis screen works fully offline. Never fetch crisis resources at runtime.
+- **Country detection** uses the device locale + a manual override in settings; falls back to a multi-region list (988 US, Samaritans UK, Lifeline AU, iasp.info worldwide) if locale is unknown.
+- Keyword + Moderation API pre-screen on every chat message as a backstop. If high-risk: replace the AI response entirely with the crisis card + hotlines + a grounding exercise. Never pass the message through to GPT.
+- **Safety contract tests** — a fixed set of crisis-language samples (English + at least Spanish, plus metaphorical phrasings) that **must** trigger the crisis flow. Run on every CI build. If a sample regresses, build fails.
+- Logged for safety review **only with explicit opt-in consent** (the granular toggle from §4.1), with no `uid` attached — see the redesigned `safety_logs` schema in §6.
 
 #### 4.7 Settings & Privacy
 - Export my data (JSON download)
@@ -167,9 +220,12 @@ users/{uid}/checkins/{YYYY-MM-DD}
   └─ { mood: 1-5, energy: 1-5, note?, voiceUrl?, createdAt }
 
 users/{uid}/conversations/{conversationId}
-  ├─ meta: { startedAt, lastMessageAt, summary }
+  ├─ meta: { startedAt, lastMessageAt, summary, promptVersion }
   └─ messages/{messageId}
-       └─ { role, content, createdAt, flagged?, savedInsight? }
+       └─ { role, contentEnc, createdAt, flagged?, savedInsight?, promptVersion }
+       // contentEnc = AES-GCM ciphertext + IV; key derived from user password via PBKDF2,
+       // never stored on the server. Server can see role, timestamps, flags — not text.
+       // promptVersion records which system prompt produced this message (for audit + replay).
 
 users/{uid}/exercises/{logId}
   └─ { exerciseId, completedAt, durationSec, helpfulRating? }
@@ -180,14 +236,17 @@ users/{uid}/insights/{weekId}
 users/{uid}/savedInsights/{id}
   └─ { content, sourceMessageId, savedAt }
 
-safety_logs/{logId}     // anonymized, opt-in
-  └─ { uid, triggeredAt, severity, action }
+safety_logs/{randomId}  // truly anonymized, opt-in only
+  └─ { triggeredAt, severity, action, locale, appVersion }
+  // NO uid, NO message content, NO conversation id. Random doc id only.
+  // Written by the Cloud Function so the client never controls the doc id.
 ```
 
 ### Firestore Security Rules (sketch)
 - Users can only read/write their own `users/{uid}/**` documents
-- `safety_logs` writable by Cloud Functions only
+- `safety_logs` writable by Cloud Functions only; not readable by anyone (only via admin tooling)
 - All chat content stays under user document — no global collection
+- Rules enforce schema shape on writes (mood/energy 1–5, no extra fields, content size caps)
 
 ---
 
@@ -218,6 +277,8 @@ Stream response to UI
 
 ### 7.2 System Prompt (high-level outline)
 
+The system prompt is a **versioned artifact**. It lives at `lib/openai/prompts/aria.v1.ts` exporting `{ version: "aria.v1", text: "..." }`. Every chat message stored in Firestore records `promptVersion`, so we can audit which prompt produced which behavior, replay conversations against newer prompt versions, and roll forward without losing history. Bumping the prompt = new file (`aria.v2.ts`), never editing the old one. Snapshot-test the prompt in CI so accidental edits fail the build.
+
 ```
 You are Aria, a warm, calm, non-judgmental wellness companion.
 You are NOT a therapist or medical professional.
@@ -242,17 +303,19 @@ Always:
 
 ### 7.3 Background Jobs (Cloud Functions)
 
-- **Weekly insight generator** — runs Sunday night per user, analyzes 7 days of check-ins via GPT, writes to `insights`
-- **Conversation summarizer** — when chat exceeds 20 messages, summarize older ones to keep context window small
-- **Adaptive reminders** — skip if user already checked in or had a hard day yesterday
+- **Lazy insight generator** — triggered when the user opens the Insights tab and the latest insight is older than 7 days. Avoids the Sunday-night thundering herd, only spends GPT calls on users who actually look at insights, and gives users a fresh insight every time they care to check.
+- **Conversation summarizer** — triggered when a conversation reaches 20 messages; summarizes older ones to keep context window small. Runs on write, not on a schedule.
+- **Adaptive reminders** — skip if user already checked in or had a hard day yesterday. Computed at the moment FCM is about to send, not pre-batched.
 
 ### 7.4 Cost Control
 
 - Default model: **GPT-4o-mini** (~$0.15 / 1M input, $0.60 / 1M output)
 - Premium "deep session": GPT-4o
-- Cap free users to ~50 messages/day
+- **Hard token budgets enforced in the Cloud Function**, not the client. Cloud Function reads `users/{uid}/usage/{YYYY-MM}` before every call and refuses (with a kind 429-style response) if the user is over budget. Client-side caps are advisory only.
+- **Per-user metering from day one**: every successful chat call increments `users/{uid}/usage/{YYYY-MM}.{tokensIn,tokensOut,messages}`. We need this data before we know what realistic limits look like.
+- Free tier ceilings (starting points, will be tuned from real data): 50 messages/day, 200k tokens/month
 - Cache common moderation results
-- Estimated cost per active free user: **<$0.20/month**
+- Honest cost expectation: **a real chat-heavy free user can hit $1–2/month** with naive prompts and full memory window. The <$0.20 figure assumes light usage and aggressive context trimming. Don't budget on the optimistic number.
 
 ---
 
@@ -286,26 +349,38 @@ Always:
 ## 9. Privacy, Safety & Compliance
 
 ### Privacy
-- Minimum data collection — no contacts, no location, no ads SDK
-- Encrypted at rest (Firestore default) and in transit
-- Local-only mode option (Phase 2)
-- Clear data export + delete
-- GDPR compliant from day one
+
+**Honest framing** — Firestore is encrypted in transit and at rest by Google, but Google (and the project owner) can technically read every document. So "encrypted at rest" alone is not a privacy guarantee for sensitive content. Our approach:
+
+- **Minimum data collection** — no contacts, no location, no ads SDK, no third-party trackers
+- **Client-side encryption** for sensitive fields before they reach Firestore: chat message text (`contentEnc`), journal/voice-note transcripts. Mood numbers, timestamps, and safety flags stay plaintext (needed for queries and Cloud Function logic). Encryption key is derived from the user's password via PBKDF2 and held only in `expo-secure-store`. **Consequence: forgotten passwords mean lost chat history**, and that trade-off must be stated clearly during onboarding.
+- **Local-only mode** (Phase 2) — opt-in toggle that disables Firestore sync for everything except auth
+- **Data export** — JSON dump of all user-readable data (decrypted client-side before download), plus a Markdown version for human readability
+- **Account deletion** — one-tap, fully wipes `users/{uid}/**` via a Cloud Function (recursive delete is the only safe way; client-side delete won't reach subcollections)
+- **GDPR**: requires signed Data Processing Addenda (DPAs) with **OpenAI** and **Google (Firebase)** — both offer them; activate before any EU user data flows. List both as subprocessors in the privacy policy.
+
+### OpenAI Zero Data Retention (LAUNCH BLOCKER)
+
+By default, OpenAI retains API inputs/outputs for 30 days for abuse monitoring. For a mental-health app this is unacceptable and likely a GDPR Article 28 violation in the EU. **Apply for Zero Data Retention on the OpenAI organization** — it's a free form, takes a few business days, and removes the retention. Treat this as a hard launch blocker, not a nice-to-have. File the request as soon as the OpenAI billing account exists.
 
 ### Safety
-- Crisis resources always one tap away
-- Moderation runs on **every** outgoing user message
+- Crisis resources always one tap away on every screen, working offline
+- Moderation runs on every outgoing user message — **as a backstop**, not the primary safety net
+- Safety contract tests in CI (see §4.6)
 - Clinical advisor review of all safety flows before launch
 - Annual safety audit
 
 ### Legal
 - Clear "not a medical device" disclaimer in onboarding + ToS
-- Privacy policy + ToS reviewed by lawyer before launch
+- Privacy policy + ToS reviewed by lawyer before launch — must list OpenAI and Google as data subprocessors
+- **Explicit age gate** (16+) at onboarding — see §4.1. Age rating is a Play Store label, not a gate.
 - Google Play policy compliance for mental health apps:
   - Disclose AI generation
   - Provide crisis resources
-  - Age rating: 17+
+  - Age rating: 17+ (in addition to in-app age gate)
+- DPAs signed with OpenAI and Google
 - Avoid HIPAA scope by not marketing to clinics initially
+- **Trademark check on the app name and "Aria"** before public launch — there are several wellness/AI products called Aria (Opera's AI assistant is one). Five-minute USPTO/TMview search.
 
 ---
 
@@ -348,11 +423,16 @@ Always:
 ## 11. Build Roadmap
 
 ### Milestone 1 — Foundation
-- Expo + NativeWind + Expo Router scaffold
-- Firebase project (Android app registered)
-- Auth flow (Google + Email)
+- ✅ Expo + NativeWind + Expo Router scaffold
+- ✅ Firebase project (Android app registered, `google-services.json` in repo)
+- Install `firebase` (JS SDK) + `@react-native-async-storage/async-storage` — keeps Expo Go working
+- Initialize Firebase in `lib/firebase.ts` with `initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) })` and `initializeFirestore(app, { localCache: persistentLocalCache(...) })` for offline support
+- Auth flow: **Google Sign-In first** (one-tap on Android via `expo-auth-session`), email/password second
+- Age gate screen (DOB picker) before any account is created
+- Firestore security rules deployed (per §6) and **rules unit-tested** with `@firebase/rules-unit-testing` before any real data is written
 - Design system tokens (colors, fonts, spacing)
-- Basic navigation shell
+- Basic navigation shell with `(auth)` vs `(tabs)` route groups gated on auth state
+- CI pipeline with: TypeScript check, ESLint, Firestore rules tests, safety contract tests (§4.6), system prompt snapshot test (§7.2)
 
 ### Milestone 2 — Daily Ritual
 - Onboarding screens
@@ -382,10 +462,12 @@ Always:
 - Cloud Function for weekly summary
 - Insights tab
 
-### Milestone 7 — Polish & Beta
-- Settings, privacy, data export/delete
+### Milestone 7 — Polish & Beta (also: migrate to React Native Firebase)
+- **Migrate from `firebase` JS SDK → `@react-native-firebase/*`** for native FCM, Crashlytics, and offline quality. Generate the first custom EAS dev client (`eas build --profile development --platform android`). Expo Go stops working from here on.
+- Settings, privacy, data export/delete (JSON + Markdown)
 - Biometric lock
-- Crashlytics + analytics events
+- Crashlytics + analytics events (privacy-respecting only)
+- FCM push notifications wired
 - Internal Play Store testing track
 - 20–30 closed beta users
 
@@ -424,6 +506,11 @@ Use **RevenueCat** for cross-platform subscription management.
 | OpenAI API cost spike | Per-user caps, cheaper model defaults, Cloud Function rate limits |
 | Play Store rejection (mental health policy) | Read policy carefully, include all required disclosures, age-rate properly |
 | User burnout / nagging | Adaptive notifications, easy snooze, no streak pressure |
+| OpenAI retains sensitive data | Apply for Zero Data Retention before launch (§9); make this a hard launch blocker |
+| Forgotten password = lost encrypted history | State the trade-off clearly during onboarding; offer to keep mood data plaintext (queryable, recoverable) and only encrypt free-text fields |
+| "Aria" trademark conflict | Trademark search before public listing; backup name picked |
+| Crisis automated detection misses real cases | Always-visible help button is the primary safety net; CI contract tests catch regressions in the backstop |
+| Firebase free tier exhaustion | Per-user metering from day one (§7.4); usage dashboard before Companion+ launch |
 
 ---
 
@@ -441,13 +528,21 @@ We **do not optimize for** time-in-app, daily opens, or session length.
 
 ## 15. Next Immediate Steps
 
-1. Initialize Expo + NativeWind project
-2. Set up Firebase project (Android first)
-3. Build the design system primitives (Button, Card, Slider, Screen)
-4. Draft & lock the AI system prompt
-5. Set up Cloud Function for OpenAI proxy (keeps API key safe)
-6. Build onboarding + check-in flow end-to-end
-7. Recruit 3–5 early testers (friends) for the very first prototype
+1. ✅ Initialize Expo + NativeWind project
+2. ✅ Set up Firebase project (Android first, `google-services.json` present)
+3. **Apply for OpenAI Zero Data Retention** on the org (multi-day lead time — file it now even though chat ships at Milestone 3)
+4. **Trademark search** on "VitaMood" and "Aria" before any public mention
+5. Install `firebase` (JS SDK) + AsyncStorage; initialize in `lib/firebase.ts` with React Native auth persistence and Firestore offline cache
+6. Wire Google Sign-In via `expo-auth-session` (first), email/password (second)
+7. Build the **age gate** screen + granular consent toggles in onboarding
+8. Deploy Firestore security rules (users can only access `users/{uid}/**`) with rules unit tests
+9. Set up CI: TypeScript, ESLint, Firestore rules tests, safety contract tests, prompt snapshot test
+10. Build the design system primitives (Button, Card, Slider, Screen)
+11. Draft & lock `lib/openai/prompts/aria.v1.ts`
+12. Set up Cloud Function for OpenAI proxy with hard per-user token budgets and usage metering
+13. Build onboarding + check-in flow end-to-end (offline-first)
+14. Recruit 3–5 early testers (friends) for the very first prototype
+15. **Sign DPAs** with OpenAI and Google before any non-test user data is stored
 
 ---
 

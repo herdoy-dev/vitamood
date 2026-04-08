@@ -43,3 +43,8 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Claude Code harness — installed skills (user-local tooling, not project code)
+.agents/
+.claude/skills/
+skills-lock.json
