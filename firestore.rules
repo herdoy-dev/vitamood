@@ -1,0 +1,57 @@
+rules_version = '2';
+
+// Firestore security rules for VitaMood (PLAN.md §6).
+//
+// Hard guarantees enforced here:
+//   1. Users can ONLY read/write documents under their own
+//      users/{uid}/** path. No cross-user reads, ever.
+//   2. safety_logs is fully closed to clients — only Cloud Functions
+//      (which use the Admin SDK and bypass these rules) may write,
+//      and nothing reads via the client SDK.
+//   3. Anything not explicitly allowed is denied by default.
+//
+// Schema-shape constraints (mood/energy bounds, content size caps)
+// will be added in a follow-up commit once the check-in writer
+// (Phase G) lands. For now we just enforce ownership.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ----- users/{uid} -----
+    // Owner-only read/write on the top-level user doc and every
+    // subcollection beneath it (checkins, conversations, exercises,
+    // insights, savedInsights, usage).
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ----- safety_logs/{logId} -----
+    // Closed to all client access. Only Cloud Functions (Admin SDK,
+    // which bypasses rules) may write. No client should ever read
+    // this collection — it's for internal safety review only and
+    // must never be re-identifiable per PLAN.md §6.
+    match /safety_logs/{logId} {
+      allow read, write: if false;
+    }
+
+    // ----- everything else -----
+    // Default deny. Any future collection must add an explicit
+    // match block — failing closed is the right default for a
+    // mental-health app.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
