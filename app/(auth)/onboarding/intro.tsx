@@ -11,6 +11,7 @@ export default function OnboardingIntro() {
     <Screen>
       <View className="flex-1 justify-between py-8">
         <View className="flex-1 justify-center gap-6">
+          <Text variant="caption">Step 1 of 4</Text>
           <Text variant="display" className="text-primary">
             A kind place to land.
           </Text>
@@ -28,10 +29,7 @@ export default function OnboardingIntro() {
           <Button
             label="Continue"
             size="lg"
-            // F2 will push to /(auth)/onboarding/privacy. For now we
-            // hand off to sign-up so the flow stays connected end to
-            // end while the rest of Phase F lands.
-            onPress={() => router.push("/(auth)/sign-up")}
+            onPress={() => router.push("/(auth)/onboarding/privacy")}
           />
         </View>
       </View>
