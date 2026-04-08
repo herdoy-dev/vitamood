@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
@@ -31,6 +32,12 @@ export default function HomeTab() {
         <Text variant="caption" className="mt-1">
           You haven't checked in yet today. It takes about 30 seconds.
         </Text>
+        <View className="mt-4">
+          <Button
+            label="Check in"
+            onPress={() => router.push("/checkin")}
+          />
+        </View>
       </Card>
     </Screen>
   );
