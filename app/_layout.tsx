@@ -17,6 +17,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { HelpButton } from "@/components/safety/help-button";
+import { AuthProvider } from "@/lib/auth/auth-context";
 import "./global.css";
 
 SplashScreen.preventAutoHideAsync();
@@ -44,9 +45,11 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <Stack />
-      <HelpButton />
-      <StatusBar style="auto" />
+      <AuthProvider>
+        <Stack />
+        <HelpButton />
+        <StatusBar style="auto" />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
