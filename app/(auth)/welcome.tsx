@@ -23,16 +23,13 @@ export default function Welcome() {
           <Button
             label="Get started"
             size="lg"
-            // Temporary: jumps straight into the tab shell so Phase C
-            // can be previewed. Replaced with onboarding (Phase F) +
-            // real auth (Phase E) before any user-facing build.
-            onPress={() => router.replace("/(tabs)/home")}
+            onPress={() => router.push("/(auth)/sign-up")}
           />
           <Button
             label="I already have an account"
             variant="ghost"
             size="lg"
-            onPress={() => router.replace("/(tabs)/home")}
+            onPress={() => router.push("/(auth)/sign-in")}
           />
 
           {/* Inline crisis link — the floating help button is hidden
