@@ -13,6 +13,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import { useColorScheme } from "nativewind";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -54,12 +55,24 @@ export default function RootLayout() {
             <Stack screenOptions={{ headerShown: false }} />
             <HelpButton />
             <LockGate />
-            <StatusBar style="auto" />
+            <ThemedStatusBar />
           </BiometricLockProvider>
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
+}
+
+/**
+ * StatusBar that follows NativeWind's active color scheme rather
+ * than the OS preference. expo-status-bar's `style="auto"` only
+ * looks at the OS, so when the user picks a manual theme override
+ * the status bar text/icons would be the wrong color. This wraps
+ * useColorScheme so the bar flips with the rest of the app.
+ */
+function ThemedStatusBar() {
+  const { colorScheme } = useColorScheme();
+  return <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />;
 }
 
 /**

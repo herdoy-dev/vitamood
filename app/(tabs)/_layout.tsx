@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { House, TrendingUp, User, Wind } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
  * Main authenticated experience: home, exercises, insights, account.
@@ -17,6 +18,13 @@ import { useColorScheme } from "nativewind";
  * the values from a small palette that mirrors the semantic tokens
  * in app/global.css and switch on the active color scheme — if you
  * change a token there, mirror it here.
+ *
+ * Height computation: VISIBLE_HEIGHT (where the icons + labels
+ * actually live) plus the device's bottom safe-area inset (for
+ * gesture-nav home indicators). Without the inset addition the
+ * labels collide with the home bar on devices with gesture
+ * navigation. Padding stacks the same way so the visible content
+ * area stays a constant height regardless of device.
  */
 
 const PALETTE = {
@@ -34,9 +42,19 @@ const PALETTE = {
   },
 } as const;
 
+// Visible content area of the tab bar — icons + label + breathing
+// room. Anything below this gets added by the safe-area inset.
+const VISIBLE_HEIGHT = 72;
+const TOP_PAD = 12;
+
 export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
   const tone = PALETTE[colorScheme === "dark" ? "dark" : "light"];
+
+  // Floor the inset so a 0 inset (Android with classic nav) still
+  // gets a small breathing room at the bottom.
+  const bottomInset = Math.max(insets.bottom, 8);
 
   return (
     <Tabs
@@ -48,13 +66,17 @@ export default function TabsLayout() {
           backgroundColor: tone.bg,
           borderTopColor: tone.border,
           borderTopWidth: 1,
-          height: 64,
-          paddingTop: 8,
-          paddingBottom: 12,
+          height: VISIBLE_HEIGHT + bottomInset,
+          paddingTop: TOP_PAD,
+          paddingBottom: bottomInset,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
         },
         tabBarLabelStyle: {
           fontFamily: "Inter-Medium",
           fontSize: 11,
+          marginTop: 4,
         },
       }}
     >
