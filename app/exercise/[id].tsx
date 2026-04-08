@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { View } from "react-native";
+import { BodyScanPlayer } from "@/components/exercises/body-scan";
 import { BoxBreathingPlayer } from "@/components/exercises/box-breathing";
 import { Grounding54321Player } from "@/components/exercises/grounding-54321";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,8 @@ export default function ExercisePlayerRoute() {
       return <BoxBreathingPlayer />;
     case "grounding-54321":
       return <Grounding54321Player />;
+    case "body-scan":
+      return <BodyScanPlayer />;
     default:
       return <StubPlayer exercise={exercise} />;
   }
