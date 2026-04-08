@@ -13,6 +13,11 @@ import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/lib/auth/auth-context";
 import { getChatContext, type ChatContext } from "@/lib/chat/context";
+import {
+  appendMessage,
+  getOrCreateActiveConversation,
+  loadMessages,
+} from "@/lib/chat/conversations";
 import { generateMockReply } from "@/lib/chat/mock-reply";
 
 /**
@@ -42,11 +47,7 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  createdAt: number;
-}
-
-function makeId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  createdAt: Date;
 }
 
 export default function ChatTab() {
@@ -62,6 +63,45 @@ export default function ChatTab() {
   // we can still send messages while it's null, the replies will
   // just be the contextless variants.
   const [chatContext, setChatContext] = useState<ChatContext | null>(null);
+  // Active conversation id, resolved on mount via
+  // getOrCreateActiveConversation. While null, send is disabled —
+  // we don't want messages floating in local state with no
+  // persistence target.
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  // Resolve the active conversation, then rehydrate its message
+  // history. This is the call that makes the chat survive an app
+  // kill — without it the local state would start empty every time.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const convId = await getOrCreateActiveConversation(user.uid);
+        if (cancelled) return;
+        setConversationId(convId);
+
+        const history = await loadMessages(user.uid, convId);
+        if (cancelled) return;
+        setMessages(
+          history.map((m) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            createdAt: m.createdAt,
+          })),
+        );
+      } catch (err) {
+        console.warn("Failed to load conversation:", err);
+      } finally {
+        if (!cancelled) setLoadingHistory(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -87,27 +127,55 @@ export default function ChatTab() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 0);
   }, [messages.length, thinking]);
 
-  function onSend() {
+  async function onSend() {
     const trimmed = draft.trim();
-    if (!trimmed || thinking) return;
+    if (!trimmed || thinking || !user || !conversationId) return;
 
     // Snapshot whether this is the first user message *before* we
     // append it — the reply generator wants the count from before.
-    const isFirstMessage = messages.filter((m) => m.role === "user").length === 0;
+    const isFirstMessage =
+      messages.filter((m) => m.role === "user").length === 0;
 
-    const userMessage: Message = {
-      id: makeId(),
-      role: "user",
-      content: trimmed,
-      createdAt: Date.now(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
     setDraft("");
     setThinking(true);
 
+    // Optimistic local append for the user's message — write to
+    // Firestore in the background. If the write fails the message
+    // still shows in local state; on reload it'd be missing, which
+    // is the right semantics for "did not actually send" (vs
+    // pretending it succeeded).
+    try {
+      const persistedUser = await appendMessage(user.uid, conversationId, {
+        role: "user",
+        content: trimmed,
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: persistedUser.id,
+          role: "user",
+          content: persistedUser.content,
+          createdAt: persistedUser.createdAt,
+        },
+      ]);
+    } catch (err) {
+      console.warn("Failed to persist user message:", err);
+      // Surface a quiet local-only message so the user sees their
+      // input echoed even if the write failed.
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `local-${Date.now()}`,
+          role: "user",
+          content: trimmed,
+          createdAt: new Date(),
+        },
+      ]);
+    }
+
     // Generate a context-aware mock reply on a short delay so the
     // typing indicator gets a moment to land. Real LLM lands in K4.
-    setTimeout(() => {
+    setTimeout(async () => {
       const replyText = chatContext
         ? generateMockReply({
             userMessage: trimmed,
@@ -116,13 +184,33 @@ export default function ChatTab() {
           })
         : "I'm here. Tell me a little more about what's going on.";
 
-      const reply: Message = {
-        id: makeId(),
-        role: "assistant",
-        content: replyText,
-        createdAt: Date.now(),
-      };
-      setMessages((prev) => [...prev, reply]);
+      try {
+        const persistedReply = await appendMessage(user.uid, conversationId, {
+          role: "assistant",
+          content: replyText,
+        });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: persistedReply.id,
+            role: "assistant",
+            content: persistedReply.content,
+            createdAt: persistedReply.createdAt,
+          },
+        ]);
+      } catch (err) {
+        console.warn("Failed to persist assistant message:", err);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `local-${Date.now()}`,
+            role: "assistant",
+            content: replyText,
+            createdAt: new Date(),
+          },
+        ]);
+      }
+
       setThinking(false);
     }, 900);
   }
@@ -158,10 +246,18 @@ export default function ChatTab() {
             showsVerticalScrollIndicator={false}
           >
             <PlaceholderNotice />
-            {messages.map((m) => (
-              <MessageBubble key={m.id} message={m} />
-            ))}
-            {thinking && <TypingBubble />}
+            {loadingHistory ? (
+              <Text variant="caption" className="text-text-muted">
+                Loading conversation…
+              </Text>
+            ) : (
+              <>
+                {messages.map((m) => (
+                  <MessageBubble key={m.id} message={m} />
+                ))}
+                {thinking && <TypingBubble />}
+              </>
+            )}
           </ScrollView>
 
           <View className="flex-row items-end gap-2 pt-2">
@@ -172,22 +268,29 @@ export default function ChatTab() {
               placeholderTextColor="rgb(156 160 168)"
               multiline
               maxLength={1000}
+              editable={!loadingHistory}
               className="flex-1 rounded-2xl border border-border bg-surface px-4 py-3 font-body text-base text-text max-h-32"
               textAlignVertical="top"
             />
             <Pressable
               onPress={onSend}
-              disabled={!draft.trim() || thinking}
+              disabled={!draft.trim() || thinking || !conversationId}
               accessibilityRole="button"
               accessibilityLabel="Send"
               className={`h-12 w-12 items-center justify-center rounded-full ${
-                draft.trim() && !thinking ? "bg-primary" : "bg-border"
+                draft.trim() && !thinking && conversationId
+                  ? "bg-primary"
+                  : "bg-border"
               }`}
             >
               <Feather
                 name="arrow-up"
                 size={22}
-                color={draft.trim() && !thinking ? "rgb(255 255 255)" : "rgb(156 160 168)"}
+                color={
+                  draft.trim() && !thinking && conversationId
+                    ? "rgb(255 255 255)"
+                    : "rgb(156 160 168)"
+                }
               />
             </Pressable>
           </View>
