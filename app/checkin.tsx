@@ -10,10 +10,12 @@ import { Text } from "@/components/ui/text";
 import { useAuth } from "@/lib/auth/auth-context";
 import { friendlyAuthError } from "@/lib/auth/error-messages";
 import {
+  CHECK_IN_TAGS,
   ENERGY_OPTIONS,
   getTodayCheckIn,
   MOOD_OPTIONS,
   saveCheckIn,
+  type CheckInTag,
 } from "@/lib/checkin";
 
 /**
@@ -33,6 +35,7 @@ export default function CheckInScreen() {
   const [mood, setMood] = useState<number | null>(null);
   const [energy, setEnergy] = useState<number | null>(null);
   const [note, setNote] = useState("");
+  const [tags, setTags] = useState<CheckInTag[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // `loading` covers the brief window between modal mount and the
@@ -57,6 +60,7 @@ export default function CheckInScreen() {
           setMood(existing.mood);
           setEnergy(existing.energy);
           setNote(existing.note ?? "");
+          setTags(existing.tags ?? []);
         }
       })
       .catch((err) => {
@@ -80,7 +84,7 @@ export default function CheckInScreen() {
     setSubmitting(true);
     setError(null);
     try {
-      await saveCheckIn(user.uid, { mood, energy, note });
+      await saveCheckIn(user.uid, { mood, energy, note, tags });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
         () => {},
       );
@@ -154,6 +158,45 @@ export default function CheckInScreen() {
               className="rounded-2xl border border-border bg-surface px-4 py-4 font-body text-base text-text min-h-[96px]"
               textAlignVertical="top"
             />
+          </View>
+
+          <View className="mt-6 gap-2">
+            <Text variant="caption">What's it about? (optional)</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {CHECK_IN_TAGS.map((tag) => {
+                const selected = tags.includes(tag);
+                return (
+                  <Pressable
+                    key={tag}
+                    onPress={() => {
+                      Haptics.selectionAsync().catch(() => {});
+                      setTags((prev) =>
+                        prev.includes(tag)
+                          ? prev.filter((t) => t !== tag)
+                          : [...prev, tag],
+                      );
+                    }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    className={`rounded-full px-4 py-2 ${
+                      selected
+                        ? "bg-primary"
+                        : "bg-surface border border-border"
+                    }`}
+                  >
+                    <Text
+                      className={
+                        selected
+                          ? "font-body-medium text-primary-fg text-sm"
+                          : "font-body-medium text-text text-sm"
+                      }
+                    >
+                      {tag}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
 
           {error && (

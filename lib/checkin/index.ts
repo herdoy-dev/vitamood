@@ -41,6 +41,28 @@ import { db } from "@/lib/firebase";
 export const MOOD_OPTIONS = ["😞", "😕", "😐", "🙂", "😄"] as const;
 export const ENERGY_OPTIONS = ["😴", "🥱", "😐", "💪", "⚡"] as const;
 
+/**
+ * Tag vocabulary for "what's on your mind today" — a fixed small
+ * set so the tags stay queryable for the eventual "you check in
+ * higher on outdoors-tagged days" insight pattern. Free-text tags
+ * would explode the cardinality and ruin grouping.
+ *
+ * Order is roughly the order most users would scan: work and sleep
+ * are the dominant daily stressors, then relationships, then self,
+ * then the lighter categories.
+ */
+export const CHECK_IN_TAGS = [
+  "work",
+  "sleep",
+  "family",
+  "friends",
+  "health",
+  "self",
+  "money",
+  "outdoors",
+] as const;
+export type CheckInTag = (typeof CHECK_IN_TAGS)[number];
+
 export interface CheckInInput {
   /** 1..5 from the mood slider (PLAN.md §4.2) */
   mood: number;
@@ -48,6 +70,8 @@ export interface CheckInInput {
   energy: number;
   /** Optional free-text note, ≤280 chars */
   note?: string;
+  /** Optional tags from CHECK_IN_TAGS */
+  tags?: CheckInTag[];
 }
 
 export interface CheckIn extends CheckInInput {
@@ -73,10 +97,18 @@ export async function saveCheckIn(uid: string, input: CheckInInput) {
   // TODO(M3): encrypt input.note client-side before writing.
   const trimmed = input.note?.trim() ?? "";
 
+  // Filter tags to the known vocabulary so a stale client can't
+  // poison the queryable field with arbitrary strings.
+  const validTags =
+    input.tags?.filter((t): t is CheckInTag =>
+      (CHECK_IN_TAGS as readonly string[]).includes(t),
+    ) ?? [];
+
   await setDoc(ref, {
     mood: input.mood,
     energy: input.energy,
     note: trimmed.length > 0 ? trimmed : null,
+    tags: validTags,
     createdAt: serverTimestamp(),
   });
 }
@@ -96,6 +128,7 @@ export async function getTodayCheckIn(uid: string): Promise<CheckIn | null> {
     mood: data.mood,
     energy: data.energy,
     note: data.note ?? undefined,
+    tags: (data.tags as CheckInTag[] | undefined) ?? [],
     createdAt: data.createdAt?.toDate?.() ?? null,
   };
 }
@@ -153,6 +186,7 @@ export async function getRecentDays(
       mood: data.mood,
       energy: data.energy,
       note: data.note ?? undefined,
+      tags: (data.tags as CheckInTag[] | undefined) ?? [],
       createdAt: data.createdAt?.toDate?.() ?? null,
     });
   });

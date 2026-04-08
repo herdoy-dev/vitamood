@@ -149,6 +149,18 @@ export default function HomeTab() {
                 "{today.note}"
               </Text>
             )}
+            {today.tags && today.tags.length > 0 && (
+              <View className="mt-3 flex-row flex-wrap gap-2">
+                {today.tags.map((tag) => (
+                  <View
+                    key={tag}
+                    className="rounded-full bg-bg px-3 py-1"
+                  >
+                    <Text variant="caption">{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
             <View className="mt-4">
               <Button
                 label="Update today"
