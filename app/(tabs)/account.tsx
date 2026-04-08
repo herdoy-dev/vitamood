@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, Switch, View } from "react-native";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,18 @@ import { useLock } from "@/lib/lock/lock-context";
 import { getProfile, type Profile } from "@/lib/profile/profile";
 
 /**
- * Minimal account screen — currently just shows the signed-in email
- * and a sign-out action. This is a placeholder for the full settings
- * surface (PLAN.md §4.7) which will absorb it later: profile, privacy
- * controls, biometric lock, notification prefs, data export/delete.
+ * Account tab — settings hub for the signed-in user.
+ *
+ * This used to be a modal at /account presented from a profile icon
+ * top-right of home. The user pulled it into a real bottom tab so
+ * settings is one of the four navigation surfaces alongside home,
+ * exercises, and insights. The crisis link, profile/privacy/lock
+ * cards, and sign-out all live here.
+ *
+ * The cards each reach a sub-modal for editing — those are still
+ * presented modals at root (`/edit-profile`, `/edit-consent`).
  */
-export default function Account() {
+export default function AccountTab() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { enabled: lockEnabled, setEnabled: setLockEnabled } = useLock();
@@ -84,18 +90,9 @@ export default function Account() {
 
   return (
     <Screen scroll>
-      <Stack.Screen options={{ presentation: "modal", animation: "slide_from_bottom" }} />
-      <View className="flex-row items-center justify-between">
-        <Text variant="title">Account</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={() => router.back()}
-          hitSlop={12}
-          className="p-2"
-        >
-          <Feather name="x" size={24} color="rgb(42 45 51)" />
-        </Pressable>
+      <View className="gap-1">
+        <Text variant="caption">Account</Text>
+        <Text variant="title">Settings</Text>
       </View>
 
       <Card className="mt-6">
@@ -131,7 +128,8 @@ export default function Account() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Edit profile"
-            onPress={() => router.push("/edit-profile")}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onPress={() => router.push("/edit-profile" as any)}
             hitSlop={8}
             className="p-2"
           >
@@ -201,7 +199,7 @@ export default function Account() {
         </View>
       </Card>
 
-      <View className="mt-6 gap-3">
+      <View className="mt-6 mb-6 gap-3">
         <Button
           label={signingOut ? "Signing out…" : "Sign out"}
           variant="ghost"

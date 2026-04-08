@@ -1,7 +1,6 @@
-import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
@@ -89,25 +88,14 @@ export default function HomeTab() {
 
   return (
     <Screen scroll>
-      <View className="flex-row items-start justify-between">
-        <View className="gap-1">
-          <Text variant="caption">Today</Text>
-          <Text variant="title">{greeting}</Text>
-          {yesterday && (
-            <Text variant="caption" className="mt-1 text-text-muted">
-              Yesterday you logged {MOOD_OPTIONS[yesterday.mood - 1]}
-            </Text>
-          )}
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Account"
-          onPress={() => router.push("/account")}
-          hitSlop={12}
-          className="p-2"
-        >
-          <Feather name="user" size={22} color="rgb(108 112 122)" />
-        </Pressable>
+      <View className="gap-1">
+        <Text variant="caption">Today</Text>
+        <Text variant="title">{greeting}</Text>
+        {yesterday && (
+          <Text variant="caption" className="mt-1 text-text-muted">
+            Yesterday you logged {MOOD_OPTIONS[yesterday.mood - 1]}
+          </Text>
+        )}
       </View>
 
       <View className="mt-6">

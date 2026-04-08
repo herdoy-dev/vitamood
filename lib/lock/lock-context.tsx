@@ -27,9 +27,9 @@ import {
  * Cold-start-only is the right tradeoff for a wellness app where
  * the friction of frequent re-prompts would itself be harmful.
  *
- * Toggling the lock from /account doesn't immediately re-lock the
- * current session — the user already authenticated to be there.
- * The change takes effect on the next cold start.
+ * Toggling the lock from the account tab doesn't immediately
+ * re-lock the current session — the user already authenticated to
+ * be there. The change takes effect on the next cold start.
  */
 
 interface LockContextValue {
