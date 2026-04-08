@@ -5,21 +5,38 @@ import { useAuth } from "@/lib/auth/auth-context";
 /**
  * Root route — the auth gate.
  *
- * On first launch we wait for Firebase to tell us whether there's a
- * persisted session before redirecting. While that's pending we
- * render an empty bg-colored View instead of nothing so the user
- * doesn't see a flash of the white default background between
- * splash hide and redirect.
+ * Three states:
+ *   1. Auth still resolving      → blank bg-colored View (briefly)
+ *   2. No user                   → /(auth)/welcome
+ *   3. User, profile loading     → blank bg-colored View
+ *   4. User, onboarding incomplete → /(auth)/onboarding/consent
+ *      (user signed up but quit before finishing consent + profile —
+ *       resume them where they left off)
+ *   5. User, onboarding complete → /(tabs)/home
  *
- * The (auth) bypass in welcome.tsx is intentionally still there as a
- * dev preview path; it gets removed in E2 when real sign-in lands.
+ * The blank-View states render an empty bg-colored area instead of
+ * nothing so the user doesn't see a flash of the white default
+ * background between splash hide and redirect.
  */
 export default function Index() {
-  const { user, loading } = useAuth();
+  const { user, loading, onboardingCompleted } = useAuth();
 
   if (loading) {
     return <View className="flex-1 bg-bg" />;
   }
 
-  return <Redirect href={user ? "/(tabs)/home" : "/(auth)/welcome"} />;
+  if (!user) {
+    return <Redirect href="/(auth)/welcome" />;
+  }
+
+  // Profile doc still loading after sign-in — wait one frame.
+  if (onboardingCompleted === null) {
+    return <View className="flex-1 bg-bg" />;
+  }
+
+  if (!onboardingCompleted) {
+    return <Redirect href="/(auth)/onboarding/consent" />;
+  }
+
+  return <Redirect href="/(tabs)/home" />;
 }
