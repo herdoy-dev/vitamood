@@ -86,7 +86,6 @@ These add native modules and force the move from Expo Go to an EAS-built custom 
 | **Icons (calm set)** | lucide-react-native | |
 | **Animation helpers** | moti | On top of reanimated |
 | **Charts** | Victory Native or @shopify/react-native-skia | Mood line chart |
-| **Subscriptions (Phase 2)** | RevenueCat | Cross-platform IAP |
 
 ### Platform Strategy
 - **Phase 1 (Android-first):** Build, polish, and launch on Google Play
@@ -177,7 +176,6 @@ The **always-visible "Need help now" button is the primary safety net**, not the
 - Wearable integration (Google Fit, then Apple Health)
 - Multi-language (start with EN, then ES, BN, HI, AR)
 - Anonymous moderated peer support rooms
-- Premium subscription tier
 - Clinical advisory board
 - Web companion dashboard
 
@@ -212,9 +210,8 @@ App
 
 ```
 users/{uid}
-  ├─ profile: { name, createdAt, timezone, goals[], checkInTime }
-  ├─ settings: { notifications, biometricLock, aiMemoryEnabled }
-  └─ subscription: { tier, renewsAt }
+  ├─ profile: { name, createdAt, timezone, goals[], checkInTime, birthYear }
+  └─ settings: { notifications, biometricLock, aiMemoryEnabled }
 
 users/{uid}/checkins/{YYYY-MM-DD}
   └─ { mood: 1-5, energy: 1-5, note?, voiceUrl?, createdAt }
@@ -309,13 +306,14 @@ Always:
 
 ### 7.4 Cost Control
 
-- Default model: **GPT-4o-mini** (~$0.15 / 1M input, $0.60 / 1M output)
-- Premium "deep session": GPT-4o
+The app is **free forever** (see §12), so cost discipline is not a "premium tier" lever — it's the only thing standing between the project and an unaffordable OpenAI bill. Every user is a free user, every call counts.
+
+- Default model: **GPT-4o-mini** (~$0.15 / 1M input, $0.60 / 1M output) for everything. GPT-4o is reserved for occasional deeper reflection sessions if the budget allows, never as a paid gate.
 - **Hard token budgets enforced in the Cloud Function**, not the client. Cloud Function reads `users/{uid}/usage/{YYYY-MM}` before every call and refuses (with a kind 429-style response) if the user is over budget. Client-side caps are advisory only.
 - **Per-user metering from day one**: every successful chat call increments `users/{uid}/usage/{YYYY-MM}.{tokensIn,tokensOut,messages}`. We need this data before we know what realistic limits look like.
-- Free tier ceilings (starting points, will be tuned from real data): 50 messages/day, 200k tokens/month
-- Cache common moderation results
-- Honest cost expectation: **a real chat-heavy free user can hit $1–2/month** with naive prompts and full memory window. The <$0.20 figure assumes light usage and aggressive context trimming. Don't budget on the optimistic number.
+- Per-user ceilings (starting points, will be tuned from real data): 50 messages/day, 200k tokens/month. If real usage looks unsustainable, the right move is to tighten these — never to add a paywall.
+- Cache common moderation results.
+- Honest cost expectation: **a real chat-heavy user can hit $1–2/month** with naive prompts and full memory window. The <$0.20 figure assumes light usage and aggressive context trimming. Don't budget on the optimistic number.
 
 ---
 
@@ -481,18 +479,20 @@ By default, OpenAI retains API inputs/outputs for 30 days for abuse monitoring. 
 
 ---
 
-## 12. Monetization (Phase 2)
+## 12. Funding Model
 
-- **Free tier:** check-ins, 50 chat messages/day, 5 exercises, weekly insight
-- **Companion+ (~$5.99/mo or $39.99/yr):**
-  - Unlimited chat with GPT-4o (deeper sessions)
-  - Voice journaling
-  - Full exercise library (20+)
-  - Therapist PDF export
-  - Custom themes
-- **No ads. Ever.**
+VitaMood is **free forever**. No subscriptions, no in-app purchases, no ads, no premium tier, no upsells, no donations prompts. Ever.
 
-Use **RevenueCat** for cross-platform subscription management.
+This is a personal project, not a business. The decision is intentional and structural — the wellness app space is full of products that turn vulnerable users into engagement metrics, and we are not interested in being one of them. The cost of running the app is paid out of pocket, and the cost ceiling is what keeps us honest about scale.
+
+### Implications
+
+- **Cost discipline is non-negotiable.** Every user is a free user, so the per-user token budgets and Cloud Function rate limits in §7.4 are the only thing standing between the project and an unaffordable OpenAI bill.
+- **Conservative defaults everywhere.** GPT-4o-mini for everything, aggressive context trimming, cached moderation results.
+- **No payment SDKs.** No RevenueCat, no Stripe, no Play Billing. One less thing to maintain, one less data category to protect, one less compliance surface.
+- **No "premium" features.** Voice journaling, deeper sessions, exercise library expansion, therapist export — when these ship, they ship for everyone.
+- **The app must be cheap to run.** If it ever isn't, the right move is to tighten the per-user caps in §7.4, not to bolt on a paywall.
+- **Sustainability has a cap.** If the cost of running the app exceeds what one person can comfortably absorb, the honest move is to slow signups, soft-pause invitations, or sunset before turning into something this plan said it would never be.
 
 ---
 
@@ -510,7 +510,7 @@ Use **RevenueCat** for cross-platform subscription management.
 | Forgotten password = lost encrypted history | State the trade-off clearly during onboarding; offer to keep mood data plaintext (queryable, recoverable) and only encrypt free-text fields |
 | "Aria" trademark conflict | Trademark search before public listing; backup name picked |
 | Crisis automated detection misses real cases | Always-visible help button is the primary safety net; CI contract tests catch regressions in the backstop |
-| Firebase free tier exhaustion | Per-user metering from day one (§7.4); usage dashboard before Companion+ launch |
+| Firebase / OpenAI cost exceeds what one person can absorb | Per-user metering from day one (§7.4); tighten caps before scale, slow signups if needed (§12) |
 
 ---
 
