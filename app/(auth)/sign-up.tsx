@@ -24,9 +24,12 @@ export default function SignUp() {
     setError(null);
     try {
       await signUp(email.trim(), password);
-      // The root auth gate will redirect to /(tabs)/home once
-      // onAuthStateChanged fires.
-      router.replace("/");
+      // After sign-up the user must complete the post-signup onboarding
+      // (consent → profile) before reaching the tabs. We navigate
+      // there manually here. The auth gate isn't enforcing this yet —
+      // F6 will close that gap by checking for profile completion on
+      // every cold start.
+      router.replace("/(auth)/onboarding/consent");
     } catch (err) {
       setError(friendlyAuthError(err));
     } finally {
