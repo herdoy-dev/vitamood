@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
 /**
  * Three-minute guided body scan player.
@@ -36,10 +37,21 @@ const STEPS: string[] = [
 
 export function BodyScanPlayer() {
   const router = useRouter();
+  const session = useExerciseSession("body-scan");
   const [index, setIndex] = useState(0);
   const [running, setRunning] = useState(true);
   const [done, setDone] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Save when the user reaches the done view (full completion).
+  useEffect(() => {
+    if (done) {
+      void session.complete({
+        stepsReached: STEPS.length,
+        totalSteps: STEPS.length,
+      });
+    }
+  }, [done, session]);
 
   // Step ticker — advance every STEP_MS while running. The final
   // step transitions to the "done" view rather than wrapping.
@@ -119,7 +131,13 @@ export function BodyScanPlayer() {
             label="End"
             variant="ghost"
             size="lg"
-            onPress={() => router.back()}
+            onPress={async () => {
+              await session.complete({
+                stepsReached: index + 1,
+                totalSteps: STEPS.length,
+              });
+              router.back();
+            }}
           />
         </View>
       </View>

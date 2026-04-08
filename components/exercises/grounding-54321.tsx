@@ -1,10 +1,11 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
 /**
  * 5-4-3-2-1 grounding player.
@@ -63,11 +64,22 @@ const STEPS: Step[] = [
 
 export function Grounding54321Player() {
   const router = useRouter();
+  const session = useExerciseSession("grounding-54321");
   const [index, setIndex] = useState(0);
   const [done, setDone] = useState(false);
 
   const step = STEPS[index];
   const isLast = index === STEPS.length - 1;
+
+  // Save the log the moment the user reaches the "done" view.
+  useEffect(() => {
+    if (done) {
+      void session.complete({
+        stepsReached: STEPS.length,
+        totalSteps: STEPS.length,
+      });
+    }
+  }, [done, session]);
 
   function onNext() {
     if (isLast) {
@@ -102,6 +114,10 @@ export function Grounding54321Player() {
             label="End"
             variant="ghost"
             size="lg"
+            // The completion log was already saved by the useEffect
+            // when `done` flipped true. No need to call complete()
+            // again here — the session ref guards against it anyway,
+            // but cleaner to just navigate.
             onPress={() => router.back()}
           />
         </View>
@@ -139,7 +155,15 @@ export function Grounding54321Player() {
             label="End"
             variant="ghost"
             size="lg"
-            onPress={() => router.back()}
+            onPress={async () => {
+              // Log the partial session — `index` is the step they
+              // were on when they ended (0-based).
+              await session.complete({
+                stepsReached: index + 1,
+                totalSteps: STEPS.length,
+              });
+              router.back();
+            }}
           />
         </View>
       </View>

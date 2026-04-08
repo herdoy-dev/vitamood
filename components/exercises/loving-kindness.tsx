@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
 /**
  * Loving-kindness (metta) micro-meditation player.
@@ -77,10 +78,20 @@ const STAGES: Stage[] = [
 
 export function LovingKindnessPlayer() {
   const router = useRouter();
+  const session = useExerciseSession("loving-kindness");
   const [index, setIndex] = useState(0);
   const [running, setRunning] = useState(true);
   const [done, setDone] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (done) {
+      void session.complete({
+        stepsReached: STAGES.length,
+        totalSteps: STAGES.length,
+      });
+    }
+  }, [done, session]);
 
   useEffect(() => {
     if (!running || done) {
@@ -169,7 +180,13 @@ export function LovingKindnessPlayer() {
             label="End"
             variant="ghost"
             size="lg"
-            onPress={() => router.back()}
+            onPress={async () => {
+              await session.complete({
+                stepsReached: index + 1,
+                totalSteps: STAGES.length,
+              });
+              router.back();
+            }}
           />
         </View>
       </View>

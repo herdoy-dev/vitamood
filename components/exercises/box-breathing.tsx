@@ -9,6 +9,7 @@ import Animated, {
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
 /**
  * Box breathing player (4-4-4-4).
@@ -44,10 +45,14 @@ const PHASE_LABEL: Record<Phase, string> = {
 
 export function BoxBreathingPlayer() {
   const router = useRouter();
+  const session = useExerciseSession("box-breathing");
 
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [running, setRunning] = useState(true);
   const [cycles, setCycles] = useState(0);
+  // Mirror cycles into a ref so the End handler reads the latest
+  // value at the moment of save without stale-closure issues.
+  const cyclesRef = useRef(0);
 
   const scale = useSharedValue(SCALE_SMALL);
   // Track the timer so we can clear it on pause/unmount.
@@ -64,7 +69,13 @@ export function BoxBreathingPlayer() {
         const next = (i + 1) % PHASES.length;
         // We just finished a full hold-out → inhale transition,
         // which means a full cycle wrapped.
-        if (next === 0) setCycles((c) => c + 1);
+        if (next === 0) {
+          setCycles((c) => {
+            const nextC = c + 1;
+            cyclesRef.current = nextC;
+            return nextC;
+          });
+        }
         return next;
       });
     }, PHASE_MS);
@@ -133,7 +144,17 @@ export function BoxBreathingPlayer() {
             label="End"
             variant="ghost"
             size="lg"
-            onPress={() => router.back()}
+            onPress={async () => {
+              // Box breathing has no fixed step count — we treat
+              // it as "complete" if the user managed at least one
+              // full cycle.
+              await session.complete({
+                stepsReached: cyclesRef.current > 0 ? 1 : 0,
+                totalSteps: 1,
+                cycles: cyclesRef.current,
+              });
+              router.back();
+            }}
           />
         </View>
       </View>
