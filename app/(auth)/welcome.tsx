@@ -1,9 +1,12 @@
+import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
 
 export default function Welcome() {
+  const router = useRouter();
+
   return (
     <Screen>
       <View className="flex-1 justify-between py-8">
@@ -20,15 +23,16 @@ export default function Welcome() {
           <Button
             label="Get started"
             size="lg"
-            onPress={() => {
-              // Wired to onboarding in Phase F; auth in Phase E
-            }}
+            // Temporary: jumps straight into the tab shell so Phase C
+            // can be previewed. Replaced with onboarding (Phase F) +
+            // real auth (Phase E) before any user-facing build.
+            onPress={() => router.replace("/(tabs)/home")}
           />
           <Button
             label="I already have an account"
             variant="ghost"
             size="lg"
-            onPress={() => {}}
+            onPress={() => router.replace("/(tabs)/home")}
           />
         </View>
       </View>
