@@ -33,10 +33,15 @@ export function HelpButton() {
   //   - the (auth) flow (welcome/sign-in/onboarding screens have their
   //     own crisis link inline near the safety disclaimer per §4.1, and
   //     the floating button collides with their bottom CTAs)
+  //   - exercise player screens (immersive practices with their own
+  //     bottom Pause/End controls — the floating button collides with
+  //     them and breaks the calm). The exercises catalog tab is fine
+  //     because its layout matches the other tab screens.
   if (
     segments.includes("crisis") ||
     segments.includes("checkin") ||
-    segments.includes("(auth)")
+    segments.includes("(auth)") ||
+    segments.includes("exercise")
   ) {
     return null;
   }

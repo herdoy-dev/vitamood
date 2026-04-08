@@ -59,6 +59,20 @@ export default function Account() {
         </Text>
       </Card>
 
+      <Card className="mt-3">
+        <Text variant="subtitle">Need help right now?</Text>
+        <Text variant="caption" className="mt-1">
+          Hotlines and a grounding exercise. Works offline.
+        </Text>
+        <View className="mt-4">
+          <Button
+            label="Open help"
+            variant="crisis"
+            onPress={() => router.push("/crisis")}
+          />
+        </View>
+      </Card>
+
       <View className="mt-6 gap-3">
         <Button
           label={signingOut ? "Signing out…" : "Sign out"}
