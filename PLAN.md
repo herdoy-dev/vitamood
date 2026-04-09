@@ -418,6 +418,78 @@ By default, OpenAI retains API inputs/outputs for 30 days for abuse monitoring. 
 
 ---
 
+## 10.5. Current Implementation Status (as of 2026-04-09)
+
+A reality check against the roadmap below. Most of Milestones 1–2 are in place, plus bits of 3/5/6 built as local-only prototypes. Everything that needs a backend beyond Firestore is still missing.
+
+### ✅ Built
+- **Scaffold** — Expo SDK 54, NativeWind v4, Expo Router v6, typed routes, New Arch, React Compiler, theme toggle (`lib/theme/`), Lucide icons on the tab bar.
+- **UI primitives** — `components/ui/{button,card,screen,slider,text}.tsx`.
+- **Auth** — `lib/auth/auth-context.tsx`, email/password sign-in/up, `(auth)` route group with `welcome`, `sign-in`, `sign-up`. Firebase JS SDK initialized in `lib/firebase/index.ts` with RN auth persistence.
+- **Onboarding** — Full 6-step flow: `intro`, `privacy`, `safety`, `age-gate` (+ `age-refusal`), `consent`, `profile`. Shared shell in `components/onboarding/onboarding-shell.tsx`. Consent storage in `lib/profile/consent.ts`. Wellness tip shown on each screen (`constants/wellness-tips.ts`).
+- **Daily check-in** — `app/checkin.tsx` + `lib/checkin/index.ts`. Mood/energy sliders, optional note, tags, 7-day reads.
+- **Home tab** — Greeting, today's check-in card, yesterday line, weekly-dots tally (no streaks), chat entry card.
+- **Chat tab** — UI shell with bubble layout, auto-scroll, keyboard avoidance. Conversations persisted to Firestore (`lib/chat/conversations.ts`). Context builder in `lib/chat/context.ts`. **Replies come from `lib/chat/mock-reply.ts` — no real AI yet.**
+- **Exercises** — 4 of 5 implemented: box breathing, 5-4-3-2-1 grounding, body scan, loving-kindness. Player at `app/exercise/[id].tsx`, session hook in `lib/exercises/use-exercise-session.ts`.
+- **Insights** — `components/insights/mood-chart.tsx`, local-only (no GPT summary).
+- **Crisis** — `app/crisis.tsx` always reachable, hardcoded `constants/resources.ts`, locale detection in `lib/safety/locale.ts`.
+- **Biometric lock** — `lib/lock/` with `biometric.ts` and `lock-context.tsx`.
+- **Account tab** — Theme toggle, edit profile, edit consent.
+
+### ❌ Still missing (by milestone)
+
+**M1 foundation gaps**
+- Firestore security rules + `@firebase/rules-unit-testing` tests — no `firestore.rules` file in repo.
+- Google Sign-In via `expo-auth-session` (only email/password works).
+- CI pipeline (TypeScript / ESLint / rules tests / safety contract tests / prompt snapshot).
+
+**M3 AI chat — nothing real exists**
+- No `functions/` directory. No Cloud Functions project at all.
+- OpenAI Cloud Function proxy with per-user token metering (`users/{uid}/usage/{YYYY-MM}`).
+- Locked system prompt `lib/openai/prompts/aria.v1.ts` + snapshot test.
+- Streaming responses, conversation summarizer (20-msg rollover), recent-mood context injection.
+- "Save this insight" bookmarking into `users/{uid}/savedInsights/{id}`.
+- Client-side encryption of message text (`contentEnc` via PBKDF2 + AES-GCM, key in `expo-secure-store`). Chat is currently plaintext in Firestore.
+- **OpenAI Zero Data Retention** application — not filed. Hard launch blocker.
+
+**M4 safety gaps**
+- Real moderation pipeline (OpenAI Moderation API + tighter keyword layer, server-side). Current `mock-reply.ts` has ~10 English keywords as a placeholder only.
+- Safety contract tests (§4.6) — no test suite exists.
+
+**M5 exercises**
+- 5th exercise: **CBT thought reframing** is not implemented.
+- Exercise helpful-rating is stored but not yet surfaced back to the user as a personalized list.
+
+**M6 insights**
+- Lazy weekly insight Cloud Function (blocked on the `functions/` dir).
+- Pattern detection copy ("you feel better on days you walked") — no correlator yet, though tags are being collected.
+
+**M7 polish**
+- Data export (JSON + Markdown) and one-tap account deletion (recursive Cloud Function).
+- Migration from `firebase` JS SDK → `@react-native-firebase/*`.
+- FCM push / adaptive reminders.
+- Voice note upload to Firebase Storage (check-in voice note path exists in the schema but not in the UI).
+- Crashlytics + privacy-respecting analytics.
+
+**Compliance / external**
+- DPAs with OpenAI + Google.
+- Trademark search on "VitaMood" and "Aria".
+- Privacy policy + ToS hosted.
+
+### 🎯 Near-term additions (fit §1 principles, no backend needed)
+
+These were identified on 2026-04-09 as high-value things we can build **before** the Cloud Function lands, purely with the data already in Firestore:
+
+1. **Daily wellness tip on Home** — `constants/wellness-tips.ts` already exists; surface one tip per day on the home tab (deterministic per day, not random per render).
+2. **CBT thought reframing exercise** (fills the missing 5th exercise slot, fully local, no GPT).
+3. **Gratitude log** — one-tap entries under `users/{uid}/gratitude/{id}`. Phase 2 item pulled forward because it's cheap and on-brand.
+4. **Mood-tag correlations** — local computation over existing check-in tags ("on days you tagged 'walk', your mood averaged 4.1").
+5. **Personalized coping toolkit** — sort completed exercises by `helpfulRating` and surface the top 3 on the home card when today's mood ≤ 2.
+
+Items 1–3 are queued for implementation immediately after this status update.
+
+---
+
 ## 11. Build Roadmap
 
 ### Milestone 1 — Foundation

@@ -4,6 +4,7 @@ import { BodyScanPlayer } from "@/components/exercises/body-scan";
 import { BoxBreathingPlayer } from "@/components/exercises/box-breathing";
 import { Grounding54321Player } from "@/components/exercises/grounding-54321";
 import { LovingKindnessPlayer } from "@/components/exercises/loving-kindness";
+import { ThoughtReframingPlayer } from "@/components/exercises/thought-reframing";
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
@@ -47,5 +48,7 @@ export default function ExercisePlayerRoute() {
       return <BodyScanPlayer />;
     case "loving-kindness":
       return <LovingKindnessPlayer />;
+    case "thought-reframing":
+      return <ThoughtReframingPlayer />;
   }
 }

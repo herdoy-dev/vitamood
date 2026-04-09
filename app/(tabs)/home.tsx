@@ -13,6 +13,7 @@ import {
   type CheckInDay,
 } from "@/lib/checkin";
 import { getProfile, type Profile } from "@/lib/profile/profile";
+import { getTipOfTheDay } from "@/constants/wellness-tips";
 
 /**
  * Home tab — today's check-in card plus a quiet weekly summary.
@@ -81,13 +82,24 @@ export default function HomeTab() {
   const yesterday = days && days.length >= 2 ? days[days.length - 2].checkIn : null;
   const weeklyCount = days?.filter((d) => d.checkIn !== null).length ?? 0;
 
+  // Deterministic per-day — rotates at local midnight. Computed once
+  // per render which is fine since it's a pure function of the date.
+  const tip = getTipOfTheDay();
+
   const firstName = profile?.name?.trim().split(/\s+/)[0];
   const greeting = firstName
     ? `${timeOfDayGreeting()}, ${firstName}.`
     : "How are you doing?";
 
   return (
-    <Screen scroll>
+    // Extra bottom padding clears the floating "Need help now" button.
+    // HelpButton sits at ~72 (tab bar) + safe-area + 16 breathing room,
+    // so ~140 of padding keeps the last card fully visible when scrolled
+    // to the end. See components/safety/help-button.tsx.
+    <Screen
+      scroll
+      scrollProps={{ contentContainerClassName: "pt-6 pb-36" }}
+    >
       <View className="gap-1">
         <Text variant="caption">Today</Text>
         <Text variant="title">{greeting}</Text>
@@ -180,6 +192,32 @@ export default function HomeTab() {
             <Button
               label="Open chat"
               onPress={() => router.push("/(tabs)/chat")}
+            />
+          </View>
+        </Card>
+
+        {/* Tip of the day — deterministic per calendar date so it
+            doesn't shuffle under the user if they reopen the app.
+            Non-clinical, permissive copy (see wellness-tips.ts). */}
+        <Card className="mt-3">
+          <Text variant="caption">{tip.label}</Text>
+          <Text variant="body" className="mt-2">
+            {tip.body}
+          </Text>
+        </Card>
+
+        {/* Gratitude — one-tap entry point. Deliberately a quieter
+            card than chat; gratitude is a pause, not a prompt. */}
+        <Card className="mt-3">
+          <Text variant="subtitle">Gratitude</Text>
+          <Text variant="caption" className="mt-1">
+            Capture a small thing in the time it takes to notice it.
+          </Text>
+          <View className="mt-4">
+            <Button
+              label="Open gratitude"
+              variant="ghost"
+              onPress={() => router.push("/gratitude")}
             />
           </View>
         </Card>

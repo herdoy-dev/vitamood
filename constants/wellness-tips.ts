@@ -90,3 +90,20 @@ export function getRandomWellnessTip(): WellnessTip {
   const i = Math.floor(Math.random() * WELLNESS_TIPS.length);
   return WELLNESS_TIPS[i];
 }
+
+/**
+ * Deterministic tip of the day. Same tip for every call on the same
+ * local calendar date — rotates at midnight. We want stability: if the
+ * user reopens the app mid-afternoon the tip shouldn't change under
+ * them. Uses a simple day-of-year hash, not a crypto hash; WELLNESS_TIPS
+ * is small and the distribution doesn't need to be perfect.
+ */
+export function getTipOfTheDay(now: Date = new Date()): WellnessTip {
+  // Days since Unix epoch in the LOCAL timezone.
+  const ms = 24 * 60 * 60 * 1000;
+  const local = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dayIndex = Math.floor(local.getTime() / ms);
+  const i = ((dayIndex % WELLNESS_TIPS.length) + WELLNESS_TIPS.length) %
+    WELLNESS_TIPS.length;
+  return WELLNESS_TIPS[i];
+}

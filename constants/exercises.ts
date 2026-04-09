@@ -9,8 +9,8 @@
  *   2. grounding-54321     — 5-4-3-2-1 senses grounding
  *   3. body-scan           — 3-minute guided body scan
  *   4. loving-kindness     — short metta meditation
- *   (Thought reframing is deferred — it needs the AI chat to drive
- *    the prompts, so it lands with Milestone 3.)
+ *   5. thought-reframing   — CBT 5-step form (local, no AI yet;
+ *                             upgrades to AI-guided in Milestone 3)
  *
  * `durationSec` is approximate — the player lets users skip ahead
  * or end early at any time.
@@ -20,7 +20,8 @@ export type ExerciseKind =
   | "box-breathing"
   | "grounding-54321"
   | "body-scan"
-  | "loving-kindness";
+  | "loving-kindness"
+  | "thought-reframing";
 
 export interface Exercise {
   id: ExerciseKind;
@@ -64,6 +65,14 @@ export const EXERCISES: Exercise[] = [
       "A short metta practice — extend warmth to yourself, then outward.",
     durationSec: 3 * 60,
     icon: "💗",
+  },
+  {
+    id: "thought-reframing",
+    title: "Thought reframing",
+    description:
+      "A gentle 5-step CBT walkthrough for a thought that's weighing on you.",
+    durationSec: 5 * 60,
+    icon: "🪞",
   },
 ];
 
