@@ -1,50 +1,74 @@
-# Welcome to your Expo app 👋
+# VitaMood
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A calm, non-clinical wellness and mental-health companion for Android. Daily check-ins, five guided exercises, an AI companion (when enabled), mood insights, and a crisis screen that's always one tap away.
 
-## Get started
+Not a medical device. Not a therapist. Not a crisis service. Free forever.
 
-1. Install dependencies
+## What's inside
 
-   ```bash
-   npm install
-   ```
+- **Daily check-in** — 30-second mood + energy + tags ritual
+- **Five guided exercises** — box breathing, 5-4-3-2-1 grounding, body scan, loving-kindness, CBT thought reframing
+- **AI companion (Aria)** — opt-in chat, non-personalized, backed by an OpenAI proxy with per-user token budgets (`functions/`)
+- **Insights** — weekly mood chart + honest tag correlations (positive only, thresholded)
+- **Gratitude log** — one-tap entries
+- **Crisis screen** — hardcoded hotlines, works offline, always reachable
+- **Biometric lock**, **data export**, **one-tap account deletion**
 
-2. Start the app
+## Design principles
 
-   ```bash
-   npx expo start
-   ```
+- **Calm over engagement** — no streaks, no push spam, no dark patterns
+- **Safety first** — always-visible "Need help now" button, moderation backstop, safety contract tests in CI
+- **Privacy by design** — minimum data, client-side encryption planned, tight Firestore rules
+- **Free forever** — no subscriptions, no IAP, no premium tier
 
-In the output, you'll find options to open the app in a
+The full product plan, safety contracts, and architecture decisions live in [`PLAN.md`](./PLAN.md). Read it before making product or architectural changes.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+React Native + Expo SDK 54 · TypeScript · NativeWind · Expo Router · Firebase (Auth + Firestore + Cloud Functions) · OpenAI (GPT-4o-mini, optional) · Jest + `@firebase/rules-unit-testing`
 
-## Get a fresh project
+## Development
 
-When you're ready, run:
+This project uses **Bun**. Use `bun` / `bunx`, not `npm` / `npx`.
 
 ```bash
-npm run reset-project
+bun install
+
+# Run (requires a custom dev client — Expo Go is not supported anymore
+# because react-native-google-mobile-ads has native code)
+bunx eas build --profile development --platform android   # first time
+bunx expo start --dev-client                               # every time after
+
+# Lint + typecheck
+bun run lint
+bunx tsc --noEmit
+
+# Unit tests (safety contract + prompt snapshot)
+bun run test
+
+# Firestore security rules tests (needs firebase-tools installed globally)
+bun run test:rules
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Repo layout
 
-## Learn more
+```
+app/            Expo Router screens — file-based routing
+components/     UI primitives + feature components (ads, exercises, legal, etc.)
+lib/            Business logic: auth, chat, checkin, exercises, safety, theme...
+constants/      Bundled resources (exercise catalog, crisis hotlines, tips)
+functions/      Firebase Cloud Functions (OpenAI proxy + usage metering)
+legal/          Plain-text privacy policy + terms of service
+__tests__/      Jest tests: firestore rules, safety contract, prompt snapshot
+firestore.rules Tight owner-only rules with schema-shape constraints
+DEPLOY.md       Runbook for closed-beta / Internal Testing rollout
+PLAN.md         Product plan, safety model, roadmap — the source of truth
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Deploying
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+See [`DEPLOY.md`](./DEPLOY.md) for the end-to-end runbook: hard external blockers (OpenAI ZDR, DPAs), Firebase Blaze + budget alert, rules deploy, Cloud Functions deploy, EAS Build, AdMob content filter, and the pre-flight checklist before flipping `EXPO_PUBLIC_USE_REAL_AI=1` on a real user.
 
-## Join the community
+## License
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+None yet — decide before any public release.
