@@ -580,17 +580,38 @@ The app is code-ready for a Google Play **Internal Testing** rollout to 20–30 
 
 ## 12. Funding Model
 
-VitaMood is **free forever**. No subscriptions, no in-app purchases, no ads, no premium tier, no upsells, no donations prompts. Ever.
+> **Original commitment (2026-03, left here on purpose):**
+> VitaMood is **free forever**. No subscriptions, no in-app purchases, **no ads**, no premium tier, no upsells, no donations prompts. Ever.
+>
+> This is a personal project, not a business. The decision is intentional and structural — the wellness app space is full of products that turn vulnerable users into engagement metrics, and we are not interested in being one of them.
 
-This is a personal project, not a business. The decision is intentional and structural — the wellness app space is full of products that turn vulnerable users into engagement metrics, and we are not interested in being one of them. The cost of running the app is paid out of pocket, and the cost ceiling is what keeps us honest about scale.
+### 2026-04-10 update — opt-in support ads
 
-### Implications
+The "no ads, ever" commitment above has been walked back **consciously, not accidentally**. The original text is preserved above because the rest of this plan reasons from it and because future-us deserves to see the full decision timeline, not a retconned one.
+
+**What changed:**
+- Opt-in banner ads were added via Google AdMob on **two surfaces only**: the Account tab and the Exercises tab. The placements are codified in `components/ads/support-banner-ad.tsx` — the component doc comment lists every allowed import site and names every surface where ads must never appear.
+- Ads are **off by default**. Every user (new or existing) starts with `adsEnabled=false`. The AdMob SDK is not even loaded into memory until the user actively flips the toggle in the onboarding consent step or in Account → Privacy → edit consent.
+- Ads are **non-personalized**. Every ad request passes `requestNonPersonalizedAdsOnly: true`, so AdMob serves contextual ads (based on the app category) rather than behavioral ads (based on cross-app tracking). Lower eCPM, no user surveillance. This is not negotiable — if you ever see `requestNonPersonalizedAdsOnly: false` in a diff, that's a regression.
+- Content is **aggressively filtered**. `lib/ads/init.ts` sets `MaxAdContentRating.G` at init time, and the AdMob console has a separate topic blocklist that must include: alcohol, gambling / sports betting, dating, weight loss, pharmaceutical, crypto / trading, religion, politics, astrology. Both layers are required — see DEPLOY.md for the console checklist.
+- Ads **will never appear** on: home, chat, check-in, crisis, every exercise player, gratitude, onboarding, legal, delete-account, export-data, edit-profile, edit-consent. That's a hard rule enforced by keeping `SupportBannerAd` out of those files. A third import site is a policy violation; the only two are `app/(tabs)/account.tsx` and `app/(tabs)/exercises.tsx`.
+- Privacy policy + ToS (`legal/privacy-policy.md`, `legal/terms-of-service.md`, mirrored in `lib/legal/copy.ts`) have been updated to list AdMob as a **conditional subprocessor**, disclose what it collects when on, and confirm the SDK is never initialized when the toggle is off.
+
+**What did NOT change:**
+- The free-forever commitment still holds. There are no subscriptions, no IAP, no premium tier, no upsells.
+- The per-user token budget in §7.4 is still the primary cost-control lever. Ads are expected to earn **near-zero** revenue at closed-beta scale and won't meaningfully offset OpenAI costs until the app is several orders of magnitude larger than it currently is. If the cost ever becomes a real problem, the response is still "tighten the caps", not "bolt on a paywall".
+- No payment SDKs.
+- No "premium" features behind ads. The ads are for support, not for gating anything.
+
+**If ads ever appear on a protected surface, that's a bug.** File it as a safety regression, not a polish issue. The whole reason the allowlist is as tight as it is is that a banner on the crisis screen or the chat tab is indefensible in a mental-health app.
+
+### Implications (still apply)
 
 - **Cost discipline is non-negotiable.** Every user is a free user, so the per-user token budgets and Cloud Function rate limits in §7.4 are the only thing standing between the project and an unaffordable OpenAI bill.
 - **Conservative defaults everywhere.** GPT-4o-mini for everything, aggressive context trimming, cached moderation results.
 - **No payment SDKs.** No RevenueCat, no Stripe, no Play Billing. One less thing to maintain, one less data category to protect, one less compliance surface.
 - **No "premium" features.** Voice journaling, deeper sessions, exercise library expansion, therapist export — when these ship, they ship for everyone.
-- **The app must be cheap to run.** If it ever isn't, the right move is to tighten the per-user caps in §7.4, not to bolt on a paywall.
+- **The app must be cheap to run.** If it ever isn't, the right move is to tighten the per-user caps in §7.4, not to push harder on ads.
 - **Sustainability has a cap.** If the cost of running the app exceeds what one person can comfortably absorb, the honest move is to slow signups, soft-pause invitations, or sunset before turning into something this plan said it would never be.
 
 ---
