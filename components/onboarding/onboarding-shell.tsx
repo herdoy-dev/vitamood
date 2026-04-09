@@ -1,9 +1,11 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { View } from "react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
+import { Sparkles } from "lucide-react-native";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
 import { StepProgress } from "@/components/exercises/step-progress";
+import { getRandomWellnessTip } from "@/constants/wellness-tips";
 
 /**
  * Shared layout for every onboarding screen.
@@ -54,6 +56,11 @@ export function OnboardingShell({
 }: OnboardingShellProps) {
   const showProgress = typeof step === "number" && typeof totalSteps === "number";
 
+  // Pick a tip once per mount so it stays stable while the user reads
+  // the screen, but a fresh tip greets them the next time they land
+  // on any onboarding step.
+  const [tip] = useState(() => getRandomWellnessTip());
+
   return (
     <Screen scroll>
       <View className="flex-1 justify-between gap-8 py-4">
@@ -83,6 +90,27 @@ export function OnboardingShell({
           className="flex-1"
         >
           {children}
+        </Animated.View>
+
+        {/* Wellness tip — a fresh, calm health nudge on every onboarding
+            screen. Sits just above the CTAs so it's the last thing the
+            user reads before tapping Continue. Fades in slightly later
+            than the body so it feels like a thoughtful aside, not part
+            of the main copy. */}
+        <Animated.View entering={FadeIn.duration(600).delay(260)}>
+          <View className="flex-row gap-3 rounded-2xl border border-border bg-surface p-4">
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-accent/15">
+              <Sparkles size={18} color="rgb(var(--accent))" />
+            </View>
+            <View className="flex-1 gap-1">
+              <Text variant="caption" className="text-accent uppercase tracking-wider">
+                {tip.label}
+              </Text>
+              <Text variant="body" className="text-text-muted">
+                {tip.body}
+              </Text>
+            </View>
+          </View>
         </Animated.View>
 
         {/* Footer — pinned at the bottom. No entrance animation; the
