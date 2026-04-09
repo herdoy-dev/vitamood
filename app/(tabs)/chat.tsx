@@ -19,7 +19,7 @@ import {
   loadMessages,
 } from "@/lib/chat/conversations";
 import { generateMockReply } from "@/lib/chat/mock-reply";
-import { chatWithAria, useRealAi } from "@/lib/chat/ai-client";
+import { chatWithAria, isRealAiEnabled } from "@/lib/chat/ai-client";
 import { containsCrisisLanguage } from "@/lib/safety/keyword-scan";
 import { Button } from "@/components/ui/button";
 
@@ -203,7 +203,7 @@ export default function ChatTab() {
     // The flag is off by default — flipping it on requires a deployed
     // function + OpenAI billing + ZDR (PLAN.md §9). See ai-client.ts.
     // On any failure we fall back to the mock so dev UX stays OK.
-    const realAi = useRealAi();
+    const realAi = isRealAiEnabled();
 
     setTimeout(async () => {
       let replyText: string;

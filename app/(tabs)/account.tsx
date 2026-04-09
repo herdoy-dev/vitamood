@@ -132,8 +132,7 @@ export default function AccountTab() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Edit profile"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onPress={() => router.push("/edit-profile" as any)}
+            onPress={() => router.push("/edit-profile")}
             hitSlop={8}
             className="p-2"
           >
@@ -155,8 +154,7 @@ export default function AccountTab() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Edit privacy settings"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onPress={() => router.push("/edit-consent" as any)}
+            onPress={() => router.push("/edit-consent")}
             hitSlop={8}
             className="p-2"
           >

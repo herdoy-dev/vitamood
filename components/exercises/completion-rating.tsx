@@ -4,12 +4,7 @@ import { Pressable, View } from "react-native";
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/lib/auth/auth-context";
-import {
-  HELPFUL_RATING_MAX,
-  HELPFUL_RATING_MIN,
-  rateExerciseLog,
-  type HelpfulRating,
-} from "@/lib/exercises";
+import { rateExerciseLog, type HelpfulRating } from "@/lib/exercises";
 
 /**
  * Post-exercise "was this helpful?" rating (PLAN.md §4.4).

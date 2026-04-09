@@ -78,7 +78,12 @@ export async function chatWithAria(
  *
  * Check at call-time rather than at module load so hot-reload picks
  * up flag changes without a full restart.
+ *
+ * NOT a React hook despite what an earlier version of this file
+ * was named — it's a pure env-var read with no React state. The
+ * `use` prefix was a naming mistake that tripped react-hooks/
+ * rules-of-hooks when called from inside an event handler.
  */
-export function useRealAi(): boolean {
+export function isRealAiEnabled(): boolean {
   return process.env.EXPO_PUBLIC_USE_REAL_AI === "1";
 }
