@@ -1,5 +1,5 @@
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { View } from "react-native";
 import { MoodChart } from "@/components/insights/mood-chart";
 import { Card } from "@/components/ui/card";
@@ -7,9 +7,22 @@ import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/lib/auth/auth-context";
 import { getRecentDays, type CheckInDay } from "@/lib/checkin";
+import {
+  formatCorrelationSentence,
+  topPositiveCorrelation,
+} from "@/lib/insights/tag-correlations";
+
+/** Window used for the tag-correlation math. Longer than the chart
+ *  window because correlations need sample size to be meaningful. */
+const CORRELATION_DAYS = 30;
+/** How many of the fetched days we chart. The chart stays at 7 so
+ *  the x-axis is readable; correlations use the full 30. */
+const CHART_DAYS = 7;
 
 /**
- * Insights tab — last 7 days of check-ins as a mood chart.
+ * Insights tab — last 7 days of check-ins as a mood chart, plus a
+ * quiet tag-correlation callout when the last 30 days have enough
+ * signal to say something honest.
  *
  * Refetches on focus so a fresh check-in from the home tab is
  * immediately visible when the user switches over.
@@ -20,7 +33,8 @@ import { getRecentDays, type CheckInDay } from "@/lib/checkin";
  */
 export default function InsightsTab() {
   const { user } = useAuth();
-  // undefined = loading, [] = loaded (might be empty)
+  // undefined = loading, [] = loaded (might be empty). Holds the full
+  // 30-day window; the chart slices the last 7 at render time.
   const [days, setDays] = useState<CheckInDay[] | undefined>(undefined);
 
   useFocusEffect(
@@ -30,7 +44,7 @@ export default function InsightsTab() {
         setDays([]);
         return;
       }
-      getRecentDays(user.uid, 7)
+      getRecentDays(user.uid, CORRELATION_DAYS)
         .then((d) => {
           if (!cancelled) setDays(d);
         })
@@ -44,7 +58,21 @@ export default function InsightsTab() {
     }, [user]),
   );
 
-  const checkInCount = days?.filter((d) => d.checkIn !== null).length ?? 0;
+  // The chart is fed only the last 7 days — sliced from the 30-day
+  // fetch, which getRecentDays returns in chronological order.
+  const chartDays = useMemo(
+    () => (days ? days.slice(-CHART_DAYS) : undefined),
+    [days],
+  );
+  const checkInCount =
+    chartDays?.filter((d) => d.checkIn !== null).length ?? 0;
+
+  // Tag correlation over the full 30-day window. Returns null (→ card
+  // hidden) whenever no tag clears the sample-size + effect-size bar.
+  const correlation = useMemo(
+    () => (days ? topPositiveCorrelation(days, 3, 0.5) : null),
+    [days],
+  );
 
   return (
     <Screen scroll>
@@ -57,7 +85,7 @@ export default function InsightsTab() {
       </View>
 
       <View className="mt-6">
-        {days === undefined ? (
+        {days === undefined || chartDays === undefined ? (
           <Card>
             <Text variant="caption">Loading…</Text>
           </Card>
@@ -73,10 +101,27 @@ export default function InsightsTab() {
           <Card>
             <Text variant="caption">Mood</Text>
             <View className="mt-4">
-              <MoodChart days={days} />
+              <MoodChart days={chartDays} />
             </View>
             <Text variant="caption" className="mt-4 text-text-muted">
               {checkInCount} of 7 days · scale 1–5 (low to high)
+            </Text>
+          </Card>
+        )}
+
+        {/* Tag correlation callout — only shows up when the last 30
+            days have at least 3 tagged AND 3 untagged days for some
+            tag, and the mood delta is at least half a slider point.
+            See lib/insights/tag-correlations.ts for the thresholds. */}
+        {correlation && (
+          <Card className="mt-3">
+            <Text variant="caption">A quiet pattern</Text>
+            <Text variant="body" className="mt-2">
+              {formatCorrelationSentence(correlation)}
+            </Text>
+            <Text variant="caption" className="mt-3 text-text-muted">
+              Based on your last 30 days. Not a diagnosis — just a
+              gentle observation.
             </Text>
           </Card>
         )}

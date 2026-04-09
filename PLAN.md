@@ -428,10 +428,10 @@ A reality check against the roadmap below. Most of Milestones 1–2 are in place
 - **Auth** — `lib/auth/auth-context.tsx`, email/password sign-in/up, `(auth)` route group with `welcome`, `sign-in`, `sign-up`. Firebase JS SDK initialized in `lib/firebase/index.ts` with RN auth persistence.
 - **Onboarding** — Full 6-step flow: `intro`, `privacy`, `safety`, `age-gate` (+ `age-refusal`), `consent`, `profile`. Shared shell in `components/onboarding/onboarding-shell.tsx`. Consent storage in `lib/profile/consent.ts`. Wellness tip shown on each screen (`constants/wellness-tips.ts`).
 - **Daily check-in** — `app/checkin.tsx` + `lib/checkin/index.ts`. Mood/energy sliders, optional note, tags, 7-day reads.
-- **Home tab** — Greeting, today's check-in card, yesterday line, weekly-dots tally (no streaks), chat entry card.
+- **Home tab** — Greeting, today's check-in card, yesterday line, weekly-dots tally (no streaks), chat entry card, daily wellness tip, gratitude entry card, and a "what you've been leaning on" coping-toolkit card (conditional on today's mood ≤ 2, surfaces the top 3 most-completed exercises from the last 30 days via `getMostCompletedExercises`).
 - **Chat tab** — UI shell with bubble layout, auto-scroll, keyboard avoidance. Conversations persisted to Firestore (`lib/chat/conversations.ts`). Context builder in `lib/chat/context.ts`. **Replies come from `lib/chat/mock-reply.ts` — no real AI yet.**
 - **Exercises** — 4 of 5 implemented: box breathing, 5-4-3-2-1 grounding, body scan, loving-kindness. Player at `app/exercise/[id].tsx`, session hook in `lib/exercises/use-exercise-session.ts`.
-- **Insights** — `components/insights/mood-chart.tsx`, local-only (no GPT summary).
+- **Insights** — `components/insights/mood-chart.tsx`, local-only (no GPT summary). Tag-correlation callout (`lib/insights/tag-correlations.ts`) surfaces a single positive mood/tag pattern from the last 30 days when thresholds are met (≥3 tagged + ≥3 untagged days, Δ ≥ 0.5 mood points).
 - **Crisis** — `app/crisis.tsx` always reachable, hardcoded `constants/resources.ts`, locale detection in `lib/safety/locale.ts`.
 - **Biometric lock** — `lib/lock/` with `biometric.ts` and `lock-context.tsx`.
 - **Account tab** — Theme toggle, edit profile, edit consent.
@@ -457,8 +457,7 @@ A reality check against the roadmap below. Most of Milestones 1–2 are in place
 - Safety contract tests (§4.6) — no test suite exists.
 
 **M5 exercises**
-- 5th exercise: **CBT thought reframing** is not implemented.
-- Exercise helpful-rating is stored but not yet surfaced back to the user as a personalized list.
+- Post-exercise "was this helpful?" rating UI — `helpfulRating` is still written by nothing. The Home tab's coping-toolkit card sorts by completion count as a proxy until this lands.
 
 **M6 insights**
 - Lazy weekly insight Cloud Function (blocked on the `functions/` dir).
@@ -478,15 +477,17 @@ A reality check against the roadmap below. Most of Milestones 1–2 are in place
 
 ### 🎯 Near-term additions (fit §1 principles, no backend needed)
 
-These were identified on 2026-04-09 as high-value things we can build **before** the Cloud Function lands, purely with the data already in Firestore:
+These were identified on 2026-04-09 as high-value things we can build **before** the Cloud Function lands, purely with the data already in Firestore. All five are now shipped — kept here as a record of what was done in that sprint.
 
-1. **Daily wellness tip on Home** — `constants/wellness-tips.ts` already exists; surface one tip per day on the home tab (deterministic per day, not random per render).
-2. **CBT thought reframing exercise** (fills the missing 5th exercise slot, fully local, no GPT).
-3. **Gratitude log** — one-tap entries under `users/{uid}/gratitude/{id}`. Phase 2 item pulled forward because it's cheap and on-brand.
-4. **Mood-tag correlations** — local computation over existing check-in tags ("on days you tagged 'walk', your mood averaged 4.1").
-5. **Personalized coping toolkit** — sort completed exercises by `helpfulRating` and surface the top 3 on the home card when today's mood ≤ 2.
+1. ✅ **Daily wellness tip on Home** — `getTipOfTheDay()` in `constants/wellness-tips.ts`, rendered on the Home tab, deterministic per local calendar date.
+2. ✅ **CBT thought reframing exercise** — `components/exercises/thought-reframing.tsx`, a local 5-step form (situation → thought → evidence for/against → reframe). Text stays in component state pending client-side encryption.
+3. ✅ **Gratitude log** — `users/{uid}/gratitude/{id}`, UI at `app/gratitude.tsx`, entry point on Home.
+4. ✅ **Mood-tag correlations** — `lib/insights/tag-correlations.ts` (pure) + callout card on the Insights tab. Positive correlations only, thresholded so we don't invent patterns from noise.
+5. ✅ **Personalized coping toolkit** — `getMostCompletedExercises()` in `lib/exercises/index.ts` + conditional card on Home when `today.mood ≤ 2`. Sorts by completion count (not `helpfulRating`, which is still not wired — see deferred item below).
 
-Items 1–3 are queued for implementation immediately after this status update.
+### Follow-ups unlocked by this sprint
+
+- **Post-exercise "was this helpful?" rating** — until this lands, the coping toolkit falls back on "most completed" as a proxy for "most valuable". Ideally a one-tap 1–5 or 👍/👎 on every exercise done-screen that writes `helpfulRating` into `users/{uid}/exercises/{logId}`. Then sort by average rating instead of count.
 
 ---
 

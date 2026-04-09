@@ -119,3 +119,62 @@ export async function getTodayExercises(
   });
   return out;
 }
+
+/**
+ * One row of the "what you've been leaning on" tally (PLAN.md §10.5
+ * item 5). Exported so the Home tab's coping-toolkit card can type
+ * its state cleanly.
+ */
+export interface ExerciseCompletionTally {
+  exerciseId: ExerciseKind;
+  /** Number of sessions the user reached the done screen for. */
+  count: number;
+}
+
+/**
+ * Count how many times each exercise was COMPLETED in the past `days`
+ * days, returning kinds sorted by completion count, descending.
+ *
+ * "Completed" means the user reached the done screen — `completed=true`
+ * in the log. Early-exit sessions don't count. This is our proxy for
+ * "the user got value out of it" until a real post-exercise helpful
+ * rating lands (PLAN.md §4.4; `helpfulRating` is still not written
+ * anywhere in the codebase as of 2026-04-09).
+ *
+ * One Firestore query. The heavy lifting is the in-memory tally, so
+ * this stays cheap even at hundreds of sessions. Range query uses
+ * `startedAt` for the same reason getTodayExercises does — the doc
+ * ids are random and don't sort chronologically.
+ *
+ * @param days How far back to look, in days. Default 30 matches the
+ *             correlation window on the Insights tab.
+ */
+export async function getMostCompletedExercises(
+  uid: string,
+  days: number = 30,
+): Promise<ExerciseCompletionTally[]> {
+  const now = new Date();
+  const windowStart = new Date(now);
+  windowStart.setDate(windowStart.getDate() - days);
+  windowStart.setHours(0, 0, 0, 0);
+
+  const ref = collection(db, "users", uid, "exercises");
+  const q = query(
+    ref,
+    where("startedAt", ">=", Timestamp.fromDate(windowStart)),
+  );
+  const snap = await getDocs(q);
+
+  const counts = new Map<ExerciseKind, number>();
+  snap.forEach((d) => {
+    const data = d.data();
+    if (data.completed !== true) return;
+    const id = data.exerciseId as ExerciseKind | undefined;
+    if (!id) return;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  });
+
+  return Array.from(counts.entries())
+    .map(([exerciseId, count]) => ({ exerciseId, count }))
+    .sort((a, b) => b.count - a.count);
+}

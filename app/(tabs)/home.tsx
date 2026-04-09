@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
@@ -14,6 +14,11 @@ import {
 } from "@/lib/checkin";
 import { getProfile, type Profile } from "@/lib/profile/profile";
 import { getTipOfTheDay } from "@/constants/wellness-tips";
+import { findExercise } from "@/constants/exercises";
+import {
+  getMostCompletedExercises,
+  type ExerciseCompletionTally,
+} from "@/lib/exercises";
 
 /**
  * Home tab — today's check-in card plus a quiet weekly summary.
@@ -45,6 +50,14 @@ export default function HomeTab() {
   const [profile, setProfile] = useState<Profile | null>(null);
   // undefined = loading, [] = loaded (might be empty), CheckInDay[] = window
   const [days, setDays] = useState<CheckInDay[] | undefined>(undefined);
+  // Top-N exercises the user has completed in the last 30 days.
+  // Only read/rendered on low-mood days (today.mood <= 2), but we
+  // fetch it on every focus anyway — the query is cheap and we'd
+  // rather the card be instantly visible when mood drops than wait
+  // for a second round-trip.
+  const [topExercises, setTopExercises] = useState<
+    ExerciseCompletionTally[]
+  >([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -52,6 +65,7 @@ export default function HomeTab() {
       if (!user) {
         setDays([]);
         setProfile(null);
+        setTopExercises([]);
         return;
       }
 
@@ -65,10 +79,15 @@ export default function HomeTab() {
           console.warn("Failed to load profile:", err);
           return null;
         }),
-      ]).then(([dayWindow, prof]) => {
+        getMostCompletedExercises(user.uid, 30).catch((err) => {
+          console.warn("Failed to load exercise tally:", err);
+          return [] as ExerciseCompletionTally[];
+        }),
+      ]).then(([dayWindow, prof, tally]) => {
         if (cancelled) return;
         setDays(dayWindow);
         setProfile(prof);
+        setTopExercises(tally);
       });
 
       return () => {
@@ -166,6 +185,50 @@ export default function HomeTab() {
                 label="Update today"
                 variant="ghost"
                 onPress={() => router.push("/checkin")}
+              />
+            </View>
+          </Card>
+        )}
+
+        {/* Coping toolkit — only on low-mood days, and only if we
+            have at least one completed session to recommend. The
+            copy deliberately doesn't claim these exercises "help" —
+            until a real helpfulRating UI lands (PLAN.md §4.4) we
+            only know what the user has reached for, not what's
+            worked for them. "Leaning on" is the honest frame. */}
+        {today !== null && today.mood <= 2 && topExercises.length > 0 && (
+          <Card className="mt-3">
+            <Text variant="subtitle">What you've been leaning on</Text>
+            <Text variant="caption" className="mt-1">
+              On lower days, here are exercises you've come back to.
+            </Text>
+            <View className="mt-4 gap-2">
+              {topExercises.slice(0, 3).map((tally) => {
+                const meta = findExercise(tally.exerciseId);
+                if (!meta) return null;
+                return (
+                  <Pressable
+                    key={tally.exerciseId}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${meta.title}`}
+                    onPress={() =>
+                      router.push(`/exercise/${tally.exerciseId}`)
+                    }
+                    className="flex-row items-center gap-3 rounded-2xl bg-bg px-4 py-3 active:opacity-70"
+                  >
+                    <Text className="text-2xl">{meta.icon}</Text>
+                    <Text variant="body-medium" className="flex-1">
+                      {meta.title}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View className="mt-4">
+              <Button
+                label="Browse all exercises"
+                variant="ghost"
+                onPress={() => router.push("/(tabs)/exercises")}
               />
             </View>
           </Card>
