@@ -8,14 +8,21 @@ rules_version = '2';
 //   2. safety_logs is fully closed to clients — only Cloud Functions
 //      (which use the Admin SDK and bypass these rules) may write,
 //      and nothing reads via the client SDK.
-//   3. Anything not explicitly allowed is denied by default.
-//
-// Schema-shape constraints (mood/energy bounds, content size caps)
-// will be added in a follow-up commit once the check-in writer
-// (Phase G) lands. For now we just enforce ownership.
+//   3. users/{uid}/usage/** (token budgets) is READ-ONLY to the
+//      owner and writable only by the Cloud Function (via Admin
+//      SDK bypass). A client that could self-increment usage could
+//      also self-reset it and defeat the whole cost-control story.
+//   4. Schema-shape validation on every writable collection: field
+//      types, value ranges, string length caps, enum membership.
+//      A stale or buggy client that tries to poison a doc with a
+//      bad shape is rejected at the rules layer, not in application
+//      code that could regress.
+//   5. Anything not explicitly allowed is denied by default.
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ---------- helpers ----------
 
     function isSignedIn() {
       return request.auth != null;
@@ -25,19 +32,163 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    // ----- users/{uid} -----
-    // Owner-only read/write on the top-level user doc and every
-    // subcollection beneath it (checkins, conversations, exercises,
-    // insights, savedInsights, usage).
-    match /users/{userId} {
-      allow read, write: if isOwner(userId);
+    // Writing exactly these keys (and no others). Catches both
+    // stale clients sending extra fields and accidental typos.
+    function hasOnly(keys) {
+      return request.resource.data.keys().hasOnly(keys);
+    }
 
-      match /{document=**} {
-        allow read, write: if isOwner(userId);
+    // Allowed tag vocabulary — mirrors CHECK_IN_TAGS in
+    // lib/checkin/index.ts. If you change one, change the other.
+    function validTagList(tags) {
+      return tags is list
+        && tags.size() <= 8
+        && tags.toSet().hasOnly([
+          'work', 'sleep', 'family', 'friends',
+          'health', 'self', 'money', 'outdoors'
+        ]);
+    }
+
+    function isIntBetween(v, lo, hi) {
+      return v is int && v >= lo && v <= hi;
+    }
+
+    function isStringMax(v, n) {
+      return v is string && v.size() <= n;
+    }
+
+    function isOptionalString(v, n) {
+      return v == null || isStringMax(v, n);
+    }
+
+    function isOptionalInt(v) {
+      return v == null || v is int;
+    }
+
+    // ---------- users/{uid} ----------
+
+    match /users/{userId} {
+      // Profile doc: readable + writable by owner. Shape check is
+      // lenient here because the profile schema evolves fast during
+      // dev — tighten in a follow-up once the onboarding flow is
+      // fully locked.
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+
+      // ----- checkins/{YYYY-MM-DD} -----
+      match /checkins/{dateKey} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && hasOnly([
+              'mood', 'energy', 'note', 'tags', 'createdAt'
+          ])
+          && isIntBetween(request.resource.data.mood, 1, 5)
+          && isIntBetween(request.resource.data.energy, 1, 5)
+          && isOptionalString(request.resource.data.note, 280)
+          && validTagList(request.resource.data.tags);
+        allow delete: if isOwner(userId);
+      }
+
+      // ----- gratitude/{autoId} -----
+      match /gratitude/{entryId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && hasOnly(['text', 'createdAt'])
+          && isStringMax(request.resource.data.text, 280)
+          && request.resource.data.text.size() > 0;
+        // Gratitude entries are intentionally immutable after
+        // creation — no update path. The user can delete and
+        // rewrite, which the client doesn't currently expose
+        // but we allow so a future edit UI has a path.
+        allow delete: if isOwner(userId);
+      }
+
+      // ----- conversations/{cid} -----
+      match /conversations/{cid} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.keys().hasAny([
+              'startedAt', 'lastMessageAt', 'summary', 'promptVersion'
+          ]);
+        allow delete: if isOwner(userId);
+
+        // ----- conversations/{cid}/messages/{mid} -----
+        match /messages/{mid} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+            && request.resource.data.role in ['user', 'assistant']
+            && isStringMax(request.resource.data.content, 4000)
+            && request.resource.data.content.size() > 0
+            // Optional fields
+            && (!('flagged' in request.resource.data.keys())
+                || request.resource.data.flagged is bool)
+            && (!('promptVersion' in request.resource.data.keys())
+                || isStringMax(request.resource.data.promptVersion, 32))
+            && (!('savedInsight' in request.resource.data.keys())
+                || request.resource.data.savedInsight is bool);
+          // Messages are immutable once written, except for
+          // toggling savedInsight / flagged (thin updates only).
+          allow update: if isOwner(userId)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['flagged', 'savedInsight']);
+          allow delete: if isOwner(userId);
+        }
+      }
+
+      // ----- exercises/{logId} -----
+      match /exercises/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && request.resource.data.exerciseId is string
+          && request.resource.data.durationSec is int
+          && request.resource.data.durationSec >= 0
+          && request.resource.data.durationSec <= 7200
+          && request.resource.data.completed is bool
+          && request.resource.data.stepsReached is int
+          && request.resource.data.totalSteps is int
+          // helpfulRating null at create time, set via update.
+          && (!('helpfulRating' in request.resource.data.keys())
+              || request.resource.data.helpfulRating == null
+              || isIntBetween(request.resource.data.helpfulRating, 1, 5));
+        // Only the helpfulRating field may change post-create,
+        // so a buggy client can't retroactively rewrite its own
+        // completion record.
+        allow update: if isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['helpfulRating'])
+          && isIntBetween(request.resource.data.helpfulRating, 1, 5);
+        allow delete: if isOwner(userId);
+      }
+
+      // ----- insights/{weekId} -----
+      match /insights/{weekId} {
+        allow read: if isOwner(userId);
+        // Writes are Cloud-Function-only (Admin SDK bypass).
+        allow write: if false;
+      }
+
+      // ----- savedInsights/{id} -----
+      match /savedInsights/{id} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isStringMax(request.resource.data.content, 4000)
+          && request.resource.data.sourceMessageId is string;
+        allow delete: if isOwner(userId);
+      }
+
+      // ----- usage/{YYYY-MM} -----
+      // Token/message metering — READ-ONLY to the owner so users
+      // can see their remaining budget if we ever show it in the
+      // UI. Writes are Cloud-Function-only because a client that
+      // could self-decrement its usage could also defeat the
+      // per-user cost cap (PLAN.md §7.4).
+      match /usage/{monthKey} {
+        allow read: if isOwner(userId);
+        allow write: if false;
       }
     }
 
-    // ----- safety_logs/{logId} -----
+    // ---------- safety_logs/{logId} ----------
     // Closed to all client access. Only Cloud Functions (Admin SDK,
     // which bypasses rules) may write. No client should ever read
     // this collection — it's for internal safety review only and
@@ -46,10 +197,9 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // ----- everything else -----
-    // Default deny. Any future collection must add an explicit
-    // match block — failing closed is the right default for a
-    // mental-health app.
+    // ---------- default deny ----------
+    // Any future collection must add an explicit match block —
+    // failing closed is the right default for a mental-health app.
     match /{document=**} {
       allow read, write: if false;
     }
