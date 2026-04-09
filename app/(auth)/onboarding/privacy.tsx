@@ -31,8 +31,8 @@ const POINTS: Point[] = [
   },
   {
     index: "02",
-    title: "On your device, encrypted on the way out",
-    body: "Free text you write — chat, journal entries — is encrypted on your device before it's stored, so even we can't read it.",
+    title: "Closed beta — plain text for now",
+    body: "During this beta your chat and journal entries are stored as plain text in Google Firestore. Client-side encryption is planned before public launch.",
   },
   {
     index: "03",
@@ -77,6 +77,14 @@ export default function OnboardingPrivacy() {
             </View>
           </View>
         ))}
+
+        <View className="mt-2">
+          <Button
+            label="Read the full privacy policy"
+            variant="ghost"
+            onPress={() => router.push("/legal/privacy")}
+          />
+        </View>
       </View>
     </OnboardingShell>
   );

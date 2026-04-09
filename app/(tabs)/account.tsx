@@ -227,6 +227,39 @@ export default function AccountTab() {
         </View>
       </Card>
 
+      {/* Legal — privacy policy + terms. Placed above the crisis
+          card so they're easy to find but still clearly below the
+          main settings cards (profile, privacy, lock, theme). */}
+      <Card className="mt-3">
+        <Text variant="caption">Legal</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Privacy policy"
+          onPress={() => router.push("/legal/privacy")}
+          className="mt-2 flex-row items-center justify-between py-2"
+        >
+          <Text variant="body-medium">Privacy policy</Text>
+          <Feather
+            name="chevron-right"
+            size={18}
+            color="rgb(108 112 122)"
+          />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Terms of service"
+          onPress={() => router.push("/legal/terms")}
+          className="flex-row items-center justify-between py-2"
+        >
+          <Text variant="body-medium">Terms of service</Text>
+          <Feather
+            name="chevron-right"
+            size={18}
+            color="rgb(108 112 122)"
+          />
+        </Pressable>
+      </Card>
+
       <Card className="mt-3">
         <Text variant="subtitle">Need help right now?</Text>
         <Text variant="caption" className="mt-1">

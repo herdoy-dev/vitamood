@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Switch, View } from "react-native";
+import { Pressable, Switch, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
@@ -76,6 +76,31 @@ export default function OnboardingConsent() {
       }
     >
       <View className="gap-3">
+        {/* Legal agreement strip — tapping either word opens the
+            corresponding modal. Per GDPR, consent must be informed;
+            linking the full documents here (not behind a buried
+            settings page) is the minimum bar. */}
+        <View className="mb-1 flex-row flex-wrap items-center">
+          <Text variant="caption" className="text-text-muted">
+            By continuing you agree to our{" "}
+          </Text>
+          <Pressable onPress={() => router.push("/legal/terms")}>
+            <Text variant="caption" className="text-primary underline">
+              Terms of service
+            </Text>
+          </Pressable>
+          <Text variant="caption" className="text-text-muted">
+            {" "}and{" "}
+          </Text>
+          <Pressable onPress={() => router.push("/legal/privacy")}>
+            <Text variant="caption" className="text-primary underline">
+              Privacy policy
+            </Text>
+          </Pressable>
+          <Text variant="caption" className="text-text-muted">
+            .
+          </Text>
+        </View>
         <ConsentRow
           title="Save my conversations"
           description="Store chat history so you can pick up where you left off."
