@@ -1,9 +1,3 @@
-import mobileAds, {
-  AdsConsent,
-  AdsConsentDebugGeography,
-  MaxAdContentRating,
-} from "react-native-google-mobile-ads";
-
 /**
  * Lazy AdMob SDK initializer (PLAN.md §12 opt-in path).
  *
@@ -22,18 +16,29 @@ import mobileAds, {
  *      so even "denied personalization" still renders ads — just
  *      contextual, not behavioral.
  *
- * This file is the ONLY place in the codebase that touches the
- * AdMob SDK's init + content-filter config. Grep for
- * `mobileAds().initialize` to see every init site (there should
- * only be one — here).
- *
- * Content filter is set to MAX_AD_CONTENT_RATING_G — General
- * audiences only. This is the most restrictive tier AdMob offers
- * and it's the minimum bar for a mental-health app. The AdMob
+ * This file is the only place outside of SupportBannerAd that
+ * touches the AdMob SDK. Content filter is set to
+ * MAX_AD_CONTENT_RATING_G — General audiences only. The AdMob
  * console has its own category blocklist on top (see DEPLOY.md §
  * AdMob — block alcohol, gambling, dating, weight loss, etc.).
- * Both layers matter: the client-side rating filters by audience
- * age, the console-side blocklist filters by topic category.
+ *
+ * ---------------------------------------------------------------
+ * LAZY NATIVE MODULE LOAD
+ * ---------------------------------------------------------------
+ *
+ * Same reasoning as components/ads/support-banner-ad.tsx: a
+ * top-level `import` of react-native-google-mobile-ads blows up
+ * at module load in any runtime that doesn't have the native
+ * binary registered (Expo Go, an old dev client, a Jest env).
+ * Since this file is imported from app/_layout.tsx, that crash
+ * would take down the entire app before AuthProvider ever
+ * mounts.
+ *
+ * We therefore require() the module inside the init function,
+ * only after the caller (AdMobGate in _layout.tsx) has verified
+ * that adsEnabled=true. A failed require() is caught, logged,
+ * and the function returns silently — ads off, app boots
+ * normally, everything else works.
  */
 
 let initStarted = false;
@@ -43,14 +48,30 @@ export async function initializeAdMobIfNeeded(): Promise<void> {
   if (initStarted) return; // idempotent — effects may fire twice in dev
   initStarted = true;
 
+  // Lazy-require the native module. Fails gracefully in any
+  // runtime that doesn't have the compiled AdMob binary.
+  let mod: typeof import("react-native-google-mobile-ads");
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    mod = require("react-native-google-mobile-ads");
+  } catch (err) {
+    console.warn(
+      "AdMob native module not available — skipping init. " +
+        "Rebuild the dev client with `bunx eas build --profile development --platform android` " +
+        "to enable ads.",
+      err,
+    );
+    return;
+  }
+
+  const { default: mobileAds, AdsConsent, MaxAdContentRating } = mod;
+
   try {
     // Request GDPR / UMP consent info for the current user. In
     // non-GDPR regions this is a near-instant no-op. In GDPR
     // regions it checks the cached consent status and, if we need
     // to, loads and shows the form.
-    const info = await AdsConsent.requestInfoUpdate({
-      // debugGeography: AdsConsentDebugGeography.EEA, // uncomment to test GDPR flow in dev
-    });
+    const info = await AdsConsent.requestInfoUpdate();
     if (info.isConsentFormAvailable) {
       // loadAndShowConsentFormIfRequired is the Google-blessed
       // helper — it no-ops if the user already dealt with the
@@ -85,7 +106,3 @@ export async function initializeAdMobIfNeeded(): Promise<void> {
 export function isAdMobInitialized(): boolean {
   return initCompleted;
 }
-
-// Re-export the debug geography enum so tests (or dev tooling)
-// can flip on the GDPR flow without importing the SDK directly.
-export { AdsConsentDebugGeography };
