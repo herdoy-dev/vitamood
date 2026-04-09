@@ -11,28 +11,31 @@ import Animated, {
 } from "react-native-reanimated";
 
 /**
- * Animated splash overlay that runs AFTER the native
- * expo-splash-screen hides.
+ * Animated splash overlay that takes over from the native
+ * expo-splash-screen with a seamless hand-off.
  *
- * The native splash is just a static image on a solid background —
- * fast, blocking, no animation. This component picks up where the
- * native splash leaves off, giving the user a ~1.6-second animated
- * hand-off into the app instead of a hard cut.
+ * The native splash (configured in app.json → expo-splash-screen
+ * plugin) shows icon.png at 150dp on the brand background, then
+ * hides the instant JS finishes booting. This component mounts at
+ * that exact moment with the SAME logo, SAME size, SAME position,
+ * SAME background — so there is no visible transition. The user
+ * only notices the splash is React-driven once the breathing
+ * pulse starts moving.
  *
  * Visual flow (matches PLAN.md §8 motion rules: 300–500ms ease-out,
  * no bouncy springs, no playful animations):
  *
- *   1. Mount        — opacity 0, logo scale 0.92
- *   2. Entry        — fade in to opacity 1 over 400ms, scale up to
- *                     1.0 over 600ms (ease-out)
- *   3. Breathing    — gentle 4-second in / 4-second out pulse on
+ *   1. Mount        — opacity 1, logo scale 1.0 (identical to the
+ *                     native splash's final state, so there's no
+ *                     fade-in gap to cover)
+ *   2. Breathing    — gentle 4-second in / 4-second out pulse on
  *                     scale (1.0 ↔ 1.05). Deliberately matches the
  *                     box-breathing exercise cadence so the whole
  *                     app feels rhythmically consistent from the
  *                     first second.
- *   4. Exit         — after SHOW_MS the breathing animation cancels
+ *   3. Exit         — after SHOW_MS the breathing animation cancels
  *                     and opacity eases to 0 over 600ms
- *   5. Unmount      — removes itself from the tree on fade-out
+ *   4. Unmount      — removes itself from the tree on fade-out
  *                     complete so it contributes nothing to layout
  *                     after it's done.
  *
@@ -47,16 +50,14 @@ import Animated, {
  * All motion runs on the UI thread via Reanimated shared values —
  * zero JS-thread cost, zero dropped frames when the app is
  * simultaneously hydrating fonts, auth state, and Firestore data.
+ *
+ * LOGO_SIZE MUST stay in sync with app.json → expo-splash-screen
+ * plugin imageWidth (currently 150). If they drift, the logo
+ * visibly jumps at the handoff moment.
  */
 
 /** How long the splash stays fully visible before fade-out starts. */
-const SHOW_MS = 1400;
-
-/** Entry fade-in duration. */
-const FADE_IN_MS = 400;
-
-/** Entry scale-up duration. */
-const SCALE_IN_MS = 600;
+const SHOW_MS = 1600;
 
 /** Exit fade-out duration. */
 const FADE_OUT_MS = 600;
@@ -67,8 +68,8 @@ const PULSE_HALF_MS = 4000;
 /** How much the logo grows at the peak of the breathing pulse. */
 const PULSE_PEAK_SCALE = 1.05;
 
-/** Logo target size in px. Adaptive to the aspect of icon.png. */
-const LOGO_SIZE = 140;
+/** Logo size in px. MUST match app.json expo-splash-screen imageWidth. */
+const LOGO_SIZE = 150;
 
 export function AnimatedSplash() {
   // `mounted` is flipped to false once the exit animation finishes,
@@ -77,39 +78,33 @@ export function AnimatedSplash() {
   // nothing blocks taps on the underlying screen.
   const [mounted, setMounted] = useState(true);
 
-  const opacity = useSharedValue(0);
-  const scale = useSharedValue(0.92);
+  // Start at the native splash's final visual state — full opacity,
+  // scale 1.0 — so the handoff from native → React is invisible.
+  // No fade-in, no scale-in: those would create a flash that the
+  // native splash already implicitly handled.
+  const opacity = useSharedValue(1);
+  const scale = useSharedValue(1);
 
   useEffect(() => {
-    // --- Entry ---
-    opacity.value = withTiming(1, {
-      duration: FADE_IN_MS,
-      easing: Easing.out(Easing.quad),
-    });
-    scale.value = withTiming(1, {
-      duration: SCALE_IN_MS,
-      easing: Easing.out(Easing.quad),
-    });
-
     // --- Breathing pulse ---
-    // Start after the entry settles so the two motions don't fight.
-    // A tiny overlap is fine; a full overlap looks jittery.
-    const pulseTimer = setTimeout(() => {
-      scale.value = withRepeat(
-        withSequence(
-          withTiming(PULSE_PEAK_SCALE, {
-            duration: PULSE_HALF_MS,
-            easing: Easing.inOut(Easing.sin),
-          }),
-          withTiming(1.0, {
-            duration: PULSE_HALF_MS,
-            easing: Easing.inOut(Easing.sin),
-          }),
-        ),
-        -1, // infinite — the exit timer below tears it down
-        true,
-      );
-    }, SCALE_IN_MS);
+    // Starts immediately on mount. The native splash held the logo
+    // static; the React takeover's first visible change is the
+    // pulse beginning — that's how the user realizes the app has
+    // booted without seeing a flash or a cut.
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(PULSE_PEAK_SCALE, {
+          duration: PULSE_HALF_MS,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        withTiming(1.0, {
+          duration: PULSE_HALF_MS,
+          easing: Easing.inOut(Easing.sin),
+        }),
+      ),
+      -1, // infinite — the exit timer below tears it down
+      true,
+    );
 
     // --- Exit ---
     const exitTimer = setTimeout(() => {
@@ -125,7 +120,6 @@ export function AnimatedSplash() {
     }, SHOW_MS);
 
     return () => {
-      clearTimeout(pulseTimer);
       clearTimeout(exitTimer);
     };
     // Empty deps: this effect runs exactly once on mount. The
