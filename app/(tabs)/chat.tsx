@@ -20,6 +20,8 @@ import {
 } from "@/lib/chat/conversations";
 import { generateMockReply } from "@/lib/chat/mock-reply";
 import { chatWithAria, useRealAi } from "@/lib/chat/ai-client";
+import { containsCrisisLanguage } from "@/lib/safety/keyword-scan";
+import { Button } from "@/components/ui/button";
 
 /**
  * Chat tab — AI companion (PLAN.md §4.3).
@@ -49,7 +51,21 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   createdAt: Date;
+  /** Whether this assistant message was produced by the safety
+   *  pipeline in response to a flagged user message. Rendered as a
+   *  distinct crisis bubble with an inline "Open help now" button. */
+  flagged?: boolean;
 }
+
+/**
+ * Gentle acknowledgment shown alongside the crisis bubble when a
+ * user message is flagged by either the local keyword scanner or
+ * the Cloud Function's Moderation backstop. Intentionally calmer
+ * than the default mock crisis reply — the inline "Open help now"
+ * button carries the action, so the text just needs to acknowledge.
+ */
+const CRISIS_ACK =
+  "Thank you for telling me. What you're feeling matters, and you don't have to carry it alone. If anything feels urgent right now, please tap below — there are real, kind people on the other end of those lines.";
 
 export default function ChatTab() {
   const router = useRouter();
@@ -91,6 +107,7 @@ export default function ChatTab() {
             role: m.role,
             content: m.content,
             createdAt: m.createdAt,
+            flagged: m.flagged,
           })),
         );
       } catch (err) {
@@ -174,6 +191,14 @@ export default function ChatTab() {
       ]);
     }
 
+    // Client-side keyword scan is the FIRST pass — runs before we
+    // decide whether to call the real AI or the mock. If it trips,
+    // we short-circuit straight into the crisis bubble and never
+    // send the message to OpenAI or the mock generator. This is
+    // the fastest path to help, and it works offline. The Cloud
+    // Function runs OpenAI Moderation as a further backstop.
+    const localCrisis = containsCrisisLanguage(trimmed);
+
     // Decide whether to call the real Cloud Function or the mock.
     // The flag is off by default — flipping it on requires a deployed
     // function + OpenAI billing + ZDR (PLAN.md §9). See ai-client.ts.
@@ -182,8 +207,14 @@ export default function ChatTab() {
 
     setTimeout(async () => {
       let replyText: string;
+      let flagged = false;
 
-      if (realAi && user) {
+      if (localCrisis) {
+        // Crisis bubble short-circuit — never call the model, don't
+        // leak the message to OpenAI even if the real-AI flag is on.
+        replyText = CRISIS_ACK;
+        flagged = true;
+      } else if (realAi && user) {
         try {
           const recentHistory = messages
             .slice(-20)
@@ -199,11 +230,10 @@ export default function ChatTab() {
             },
           });
           replyText = response.reply;
-          // `flagged=true` means the moderation backstop intercepted
-          // the message. Future work: surface the crisis card inline
-          // here. For now we just render the reply and trust the
-          // always-visible HelpButton — which is the primary safety
-          // net per PLAN.md §4.6.
+          // Server-side OpenAI Moderation backstop (PLAN.md §4.6):
+          // when the function returns flagged=true, render the
+          // crisis bubble instead of the default assistant style.
+          flagged = response.flagged === true;
         } catch (err) {
           console.warn(
             "Real chat call failed, falling back to mock:",
@@ -231,6 +261,7 @@ export default function ChatTab() {
         const persistedReply = await appendMessage(user.uid, conversationId, {
           role: "assistant",
           content: replyText,
+          flagged,
         });
         setMessages((prev) => [
           ...prev,
@@ -239,6 +270,7 @@ export default function ChatTab() {
             role: "assistant",
             content: persistedReply.content,
             createdAt: persistedReply.createdAt,
+            flagged: persistedReply.flagged,
           },
         ]);
       } catch (err) {
@@ -250,6 +282,7 @@ export default function ChatTab() {
             role: "assistant",
             content: replyText,
             createdAt: new Date(),
+            flagged: flagged || undefined,
           },
         ]);
       }
@@ -295,9 +328,17 @@ export default function ChatTab() {
               </Text>
             ) : (
               <>
-                {messages.map((m) => (
-                  <MessageBubble key={m.id} message={m} />
-                ))}
+                {messages.map((m) =>
+                  m.flagged && m.role === "assistant" ? (
+                    <CrisisBubble
+                      key={m.id}
+                      message={m}
+                      onOpenHelp={() => router.push("/crisis")}
+                    />
+                  ) : (
+                    <MessageBubble key={m.id} message={m} />
+                  ),
+                )}
                 {thinking && <TypingBubble />}
               </>
             )}
@@ -384,6 +425,44 @@ function TypingBubble() {
         <Text variant="caption" className="text-text-muted">
           …
         </Text>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Crisis bubble rendered when an assistant message has `flagged`
+ * set. Visually distinct from regular assistant bubbles:
+ *   - Full-width (not capped at 80%) so it reads as a system
+ *     acknowledgment rather than part of the conversation.
+ *   - Warm terracotta background tint (`bg-crisis/10`) with a
+ *     matching border — never red, per PLAN.md §8.
+ *   - Inline "Open help now" button that navigates to /crisis.
+ *   - Small label up top so the user understands why this looks
+ *     different.
+ *
+ * The always-visible floating HelpButton remains the PRIMARY
+ * safety net (PLAN.md §4.6). This bubble is a redundant, in-line
+ * reinforcement of the same path so a user in distress doesn't
+ * have to notice or hunt for the floating button.
+ */
+function CrisisBubble({
+  message,
+  onOpenHelp,
+}: {
+  message: Message;
+  onOpenHelp: () => void;
+}) {
+  return (
+    <View className="mb-4 self-stretch rounded-2xl border border-crisis/30 bg-crisis/10 p-4">
+      <Text variant="caption" className="text-crisis">
+        A moment — this matters
+      </Text>
+      <Text variant="body" className="mt-2 text-text">
+        {message.content}
+      </Text>
+      <View className="mt-4">
+        <Button label="Open help now" variant="crisis" onPress={onOpenHelp} />
       </View>
     </View>
   );

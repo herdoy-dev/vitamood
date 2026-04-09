@@ -41,6 +41,13 @@ export interface PersistedMessage {
   role: MessageRole;
   content: string;
   createdAt: Date;
+  /**
+   * Set by the safety pipeline when the message was intercepted by
+   * the client keyword scanner or the Cloud Function's OpenAI
+   * Moderation backstop. The chat UI renders a distinct crisis
+   * bubble when this is true (PLAN.md §4.6).
+   */
+  flagged?: boolean;
 }
 
 /**
@@ -103,6 +110,7 @@ export async function loadMessages(
       role: data.role as MessageRole,
       content: data.content ?? "",
       createdAt: data.createdAt?.toDate?.() ?? new Date(),
+      flagged: data.flagged === true ? true : undefined,
     };
   });
 }
@@ -124,7 +132,7 @@ export async function loadMessages(
 export async function appendMessage(
   uid: string,
   convId: string,
-  message: { role: MessageRole; content: string },
+  message: { role: MessageRole; content: string; flagged?: boolean },
 ): Promise<PersistedMessage> {
   const messagesRef = collection(
     db,
@@ -135,11 +143,18 @@ export async function appendMessage(
     "messages",
   );
   const now = new Date();
-  const created = await addDoc(messagesRef, {
+  // Only include `flagged` in the write if true — avoids null-vs-
+  // missing churn and keeps the doc small. The rules file already
+  // treats the field as optional and bool-typed when present.
+  const payload: Record<string, unknown> = {
     role: message.role,
     content: message.content,
     createdAt: Timestamp.fromDate(now),
-  });
+  };
+  if (message.flagged === true) {
+    payload.flagged = true;
+  }
+  const created = await addDoc(messagesRef, payload);
 
   // Bump the parent's lastMessageAt so getOrCreateActiveConversation
   // keeps surfacing this doc. setDoc with merge:true is safe even if
@@ -160,5 +175,6 @@ export async function appendMessage(
     role: message.role,
     content: message.content,
     createdAt: now,
+    flagged: message.flagged === true ? true : undefined,
   };
 }
