@@ -1,3 +1,9 @@
+---
+layout: page
+title: Privacy Policy
+permalink: /privacy-policy/
+---
+
 # VitaMood Privacy Policy
 
 _Last updated: 2026-04-10 (closed beta — opt-in ads added)_
@@ -25,15 +31,14 @@ VitaMood is a non-clinical wellness companion. This policy describes exactly wha
 | Category | Where it's stored | Why |
 |---|---|---|
 | **Email + password** | Firebase Authentication | Sign-in and account recovery |
-| **Display name, birth year, daily check-in time, goals** | Firestore `users/{uid}/profile` | Personalize the app and gate under-16 users (age gate required by PLAN.md §4.1) |
+| **Display name, birth year, daily check-in time, goals** | Firestore `users/{uid}/profile` | Personalize the app and gate under-16 users |
 | **Consent toggles** | Firestore `users/{uid}/settings` | Honor your choices about AI memory, safety-log participation, push notifications |
 | **Daily check-ins** (mood, energy, optional note, tags) | Firestore `users/{uid}/checkins/{YYYY-MM-DD}` | The core ritual of the app |
 | **Exercise session logs** (which exercise, duration, completion, helpful rating) | Firestore `users/{uid}/exercises/{logId}` | Surface the "what you've been leaning on" card on the Home tab |
 | **Chat conversations with the AI companion** | Firestore `users/{uid}/conversations/{id}/messages/{mid}` | Let you pick up where you left off; provide recent-context to the AI |
 | **Gratitude log entries** | Firestore `users/{uid}/gratitude/{id}` | The gratitude feature |
 | **Saved insights** (AI replies you bookmark) | Firestore `users/{uid}/savedInsights/{id}` | The save-insight feature |
-| **Monthly usage totals** (token + message counts) | Firestore `users/{uid}/usage/{YYYY-MM}` | Enforce the per-user cost budget (PLAN.md §7.4) |
-| **Crash reports** | None (not yet wired — see section 8) | — |
+| **Monthly usage totals** (token + message counts) | Firestore `users/{uid}/usage/{YYYY-MM}` | Enforce the per-user cost budget |
 
 ### What we explicitly do NOT collect
 
@@ -68,11 +73,11 @@ Mood numbers, timestamps, and safety flags stay in plain text **forever** — th
 2. **OpenAI** — only when the "real AI" flag is enabled on your build. Your chat messages are sent to OpenAI's chat completion API. OpenAI is bound by our **Zero Data Retention agreement**, so they do not retain inputs/outputs for abuse monitoring. _If ZDR is not yet confirmed for your build, the flag is off and your chat goes to a local mock generator instead._
 3. **Google AdMob (conditional subprocessor)** — only when you have toggled "Show support ads" on in the Account tab. When enabled:
    - AdMob receives your **advertising identifier**, **approximate location** (country-level, derived from IP), and **device type** on every ad request.
-   - We request **non-personalized ads only** via `requestNonPersonalizedAdsOnly: true`, so AdMob does not use cross-app behavioral data to target you — only contextual information about the current app.
-   - Ads are filtered against an aggressive blocklist in the AdMob console (alcohol, gambling, dating, weight loss, pharmaceutical, crypto/trading, religion, politics) and the maximum content rating is set to **G (General audiences)**. These filters are best-effort from Google's side; they dramatically reduce but do not eliminate the chance of an unexpected ad category.
+   - We request **non-personalized ads only**, so AdMob does not use cross-app behavioral data to target you — only contextual information about the current app.
+   - Ads are filtered against an aggressive blocklist in the AdMob console (alcohol, gambling, dating, weight loss, pharmaceutical, crypto/trading, religion, politics) and the maximum content rating is set to **G (General audiences)**.
    - Banners appear ONLY on the Account tab and the Exercises tab. Never on home, chat, check-in, the crisis screen, any exercise player, gratitude, onboarding, or legal screens.
    - Turn it off in the Account tab → Privacy → "Show support ads" → toggle off. Ads disappear immediately.
-   - When ads are off, the AdMob SDK is never initialized — no tracker fires, no network request is made to Google's ad servers, and no advertising identifier is read.
+   - When ads are off, the AdMob SDK is never initialized — no tracker fires, no network request is made, and no advertising identifier is read.
 4. **The VitaMood project owner** — has admin-level access to the Firebase project and can therefore read any document. During closed beta this access is used only for debugging reported issues.
 5. **No one else.** We do not sell or share your data. There are no analytics SDKs.
 
@@ -83,7 +88,7 @@ Mood numbers, timestamps, and safety flags stay in plain text **forever** — th
 - **Export** — download a JSON copy of everything in your account. Account tab → Export my data.
 - **Delete** — one-tap account deletion that removes every document under `users/{uid}/**` and removes your Firebase Auth record. Account tab → Delete my account. This is irreversible.
 - **Pause AI memory** — stop new chat messages from being used as context for future AI replies, without deleting history. Account tab → Privacy.
-- **Opt out of safety log** — you can opt out of the opt-in safety log at any time. No identifiable data is ever written to this log in any case (PLAN.md §6).
+- **Opt out of safety log** — you can opt out of the opt-in safety log at any time. No identifiable data is ever written to this log in any case.
 
 EU/UK users have the full set of GDPR rights (access, rectification, erasure, portability, object, restrict). Use the Export / Delete flows, or email us at `privacy@vitamood.example` to exercise any that aren't in-app.
 

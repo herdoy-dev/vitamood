@@ -194,37 +194,69 @@ When it finishes:
 
 ### 7.3 Data safety form
 
-This is the section Google is strictest about. Fill it in honestly based on `legal/privacy-policy.md`:
+This is the section Google is strictest about. Full pre-filled answers are in `store/listing-copy.md` → **Data safety form** — copy them verbatim into Play Console. Critical points:
 
-| Question | Answer |
+| Field | Answer |
 |---|---|
-| Do you collect or share user data? | Yes |
-| Is all user data encrypted in transit? | Yes (TLS to Firestore + Cloud Functions) |
-| Do you provide a way for users to request that their data be deleted? | Yes (in-app, Account tab → Delete my account) |
-| Data types collected | Email, user IDs, name, date of birth, health/fitness info (mood/energy check-ins, exercise sessions), messages (chat with AI companion), other user-generated content (gratitude entries) |
-| Required or optional | Email + DOB required; the rest optional |
-| Purpose | App functionality, account management |
-| Shared with third parties | Yes — OpenAI when real-AI flag is enabled (closed beta ships with it OFF) |
+| Collect or share user data | **Yes** |
+| All data encrypted in transit | **Yes** |
+| Users can request data deletion | **Yes** (in-app, Account tab → Delete my account) |
+| **Data types collected (required)** | Email, Name, Date of birth, User IDs |
+| **Data types collected (optional)** | Health/fitness info (mood, energy, exercises), Messages (AI chat), Other UGC (gratitude), Advertising identifier (when ads opt-in), App interactions (ad events, when ads opt-in) |
+| **Shared with third parties** | Google AdMob (ad serving, opt-in only), OpenAI (chat processing, only when real-AI flag on + ZDR confirmed) |
+| Purpose | App functionality, Account management, Advertising or marketing (opt-in only) |
+
+**Important nuances Google will ask about:**
+
+- Every non-authentication data type is marked **OPTIONAL** because users can skip check-ins, skip chat, skip gratitude, and turn off support ads. Only email + name + DOB are required (for the account + age gate).
+- Advertising ID is collected **only** when the user enables "Show support ads" in the Account tab. Off by default.
+- Chat messages go to OpenAI **only** when the `EXPO_PUBLIC_USE_REAL_AI` flag is set to `1` in the build profile. For closed beta this flag stays off and chat uses a local mock.
 
 ### 7.4 Mental health app questionnaire
 
-Google added a specific questionnaire for mental-health apps in 2024. Expect questions about:
+Google added this in 2024 for health-category apps. Pre-filled answers in `store/listing-copy.md` → **Mental health app questionnaire**. Summary:
 
-- **Crisis resources**: Yes, hardcoded in `constants/resources.ts`, reachable from every screen via the always-visible "Need help now" button.
-- **AI disclosure**: Yes, disclosed in onboarding and in the privacy policy.
-- **Age gate**: Yes, 16+, DOB-based, blocks account creation for under-16.
-- **Moderation**: OpenAI Moderation API runs on every outgoing user message when the real-AI flag is enabled (currently off for beta).
+- **Crisis resources provided?** Yes, hardcoded in `constants/resources.ts`, reachable via the always-visible "Need help now" button on every screen, works offline.
+- **Uses AI?** Yes — the "Aria" AI companion, disclosed in onboarding, privacy policy, and ToS. Opt-in and can be disabled.
+- **AI makes medical claims?** No — the system prompt explicitly forbids it; the ToS disclaims medical use.
+- **Age gate?** Yes — DOB-based 16+ gate in onboarding.
+- **User-generated content protected?** Yes — Firestore security rules with schema validation, OpenAI Moderation API backstop on chat.
+- **Replaces professional medical advice?** No — explicit disclaimer throughout the app.
 
-### 7.5 Privacy policy URL
+### 7.5 Privacy policy URL (already wired)
 
-Google requires a **public URL** for the privacy policy on the store listing — not the in-app copy. Quickest path:
+The repo publishes `docs/privacy-policy.md` and `docs/terms-of-service.md` to GitHub Pages. Enable Pages in the repo settings once:
 
-1. Create a new public GitHub repo (or use an existing one).
-2. Drop `legal/privacy-policy.md` in as a new file.
-3. Enable GitHub Pages for the repo.
-4. Use the resulting URL as the Play Console privacy policy URL.
+1. GitHub repo → **Settings → Pages**
+2. **Build and deployment source:** Deploy from a branch
+3. **Branch:** `main`, folder: `/docs`
+4. Save. Wait ~1–2 minutes for the first publish.
 
-Alternatively, host on your own domain. Either way, the URL must be reachable from the public internet.
+Your URLs will be:
+
+- **Privacy policy** → `https://herdoydev.github.io/vitamood/privacy-policy/`
+- **Terms of service** → `https://herdoydev.github.io/vitamood/terms-of-service/`
+- **Landing page** → `https://herdoydev.github.io/vitamood/`
+
+Paste the privacy policy URL into Play Console → **Policy → App content → Privacy policy**.
+
+### 7.6 Ads declaration
+
+Select: **Yes, contains ads**
+
+Further details in Play Console copy the exact text from `store/listing-copy.md` → **Ads disclosure**.
+
+### 7.7 App content questions — quick answer sheet
+
+| Question | Answer |
+|---|---|
+| Target audience age | 18+ (in-app age gate is 16+, target audience is adults) |
+| Appeals to children | No |
+| Government app | No |
+| Financial features | No |
+| News content | No |
+| COVID-19 contact tracing | No |
+| Health app | **Yes — mental wellness** |
 
 ---
 
@@ -233,13 +265,7 @@ Alternatively, host on your own domain. Either way, the URL must be reachable fr
 1. Play Console → your app → **Testing** → **Internal testing** → **Create new release**
 2. Upload the AAB file from the EAS build.
 3. Release name: `1.0.0 (1)` or similar.
-4. Release notes: what changed in this build. For the first release:
-   ```
-   VitaMood 1.0.0 — closed beta.
-   - Daily check-in, 5 guided exercises, gratitude log
-   - AI companion (placeholder replies during beta)
-   - Crisis resources always one tap away
-   ```
+4. **Release notes:** copy from `store/listing-copy.md` → **Release notes — version 1.0.0 (1)**.
 5. **Save**, then **Review release**, then **Start rollout to Internal testing**.
 
 ### 8.1 Add testers
