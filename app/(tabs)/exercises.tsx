@@ -54,8 +54,10 @@ export default function ExercisesTab() {
           >
             <Card>
               <View className="flex-row items-center gap-4">
-                <View className="h-14 w-14 items-center justify-center rounded-full bg-bg">
-                  <Text className="text-3xl">{exercise.icon}</Text>
+                <View className="h-20 w-20 items-center justify-center rounded-full bg-bg">
+                  <Text style={{ fontSize: 44, lineHeight: 52 }}>
+                    {exercise.icon}
+                  </Text>
                 </View>
 
                 <View className="flex-1">
