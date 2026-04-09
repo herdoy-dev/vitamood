@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, Switch, View } from "react-native";
+import { SupportBannerAd } from "@/components/ads/support-banner-ad";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
@@ -294,6 +295,13 @@ export default function AccountTab() {
           />
         </View>
       </Card>
+
+      {/* Opt-in support banner ad (PLAN.md §12 updated policy).
+          Renders nothing unless the user has toggled adsEnabled
+          on in their consent doc. One of only TWO import sites
+          for SupportBannerAd in the entire app — the other is
+          app/(tabs)/exercises.tsx. */}
+      <SupportBannerAd />
 
       <View className="mt-6 mb-6 gap-3">
         <Button

@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
+import { SupportBannerAd } from "@/components/ads/support-banner-ad";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
@@ -83,6 +84,14 @@ export default function ExercisesTab() {
           </Pressable>
         ))}
       </View>
+
+      {/* Opt-in support banner ad (PLAN.md §12). Renders ONLY when
+          the user has toggled ads on. Placed at the very bottom of
+          the exercises list — never inside or above it, so it can
+          never interrupt the flow of picking a practice. One of
+          only TWO import sites for SupportBannerAd; the other is
+          app/(tabs)/account.tsx. */}
+      <SupportBannerAd />
     </Screen>
   );
 }
