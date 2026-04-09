@@ -1,6 +1,6 @@
 # VitaMood Terms of Service
 
-_Last updated: 2026-04-09 (closed beta)_
+_Last updated: 2026-04-10 (closed beta — opt-in ads added)_
 
 By using VitaMood you agree to these terms. Read them once — they're short on purpose.
 
@@ -52,6 +52,10 @@ We reserve the right to terminate accounts that violate these rules.
 ## 5. Data and privacy
 
 Your use is also governed by the Privacy Policy, which is the source of truth for what we collect, who sees it, and how you exercise your rights (export, delete, consent toggles).
+
+### 5.1 Optional support ads
+
+You may opt in to show a small support banner on the Account and Exercises tabs from the Account → Privacy screen. Ads are off by default, non-personalized, content-filtered against a strict category blocklist (no alcohol, gambling, dating, weight loss, pharmaceutical, crypto, religion, or politics), and will never appear on the chat tab, the crisis screen, the check-in modal, any exercise player, the gratitude screen, onboarding, or any legal screen. You can turn them off again at any time and the ad SDK will stop loading immediately.
 
 ---
 

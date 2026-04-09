@@ -1,6 +1,6 @@
 # VitaMood Privacy Policy
 
-_Last updated: 2026-04-09 (closed beta)_
+_Last updated: 2026-04-10 (closed beta — opt-in ads added)_
 
 VitaMood is a non-clinical wellness companion. This policy describes exactly what data we collect, where it lives, who else sees it, and what you can do about it. It's written to be readable, not to hide behind legalese.
 
@@ -10,7 +10,8 @@ VitaMood is a non-clinical wellness companion. This policy describes exactly wha
 
 ## 1. The short version
 
-- We collect the minimum we need to make the app work. No location, no contacts, no ads SDKs, no analytics without your explicit opt-in.
+- We collect the minimum we need to make the app work. No location, no contacts, no analytics without your explicit opt-in.
+- **Ads are off by default.** If you opt in to support ads from the Account tab, a single small banner appears on the Account and Exercises tabs — never on chat, check-in, the crisis screen, or any exercise. Ads are non-personalized, and the ad SDK only loads if you enable it. See section 4.
 - Everything you store lives in **Google Cloud Firestore**, a Google-operated database. Google (and the VitaMood project owner) can technically read the contents of your account. See section 4.
 - Nothing you write is shared with other VitaMood users. Your check-ins, chats, journal entries, and gratitude log are scoped to your account by strict security rules.
 - You can **export** your data as JSON or **delete** your account + all its data at any time, from the Account tab inside the app.
@@ -41,8 +42,11 @@ VitaMood is a non-clinical wellness companion. This policy describes exactly wha
 - Photos or camera access
 - Microphone access (voice journaling is not shipped yet)
 - Browsing history
-- Advertising identifiers
-- Third-party trackers or ad SDKs
+- Analytics (no Google Analytics, no Firebase Analytics, no third-party analytics SDKs)
+
+### What is conditional (opt-in only)
+
+- **Advertising identifier** — only if you enable "Show support ads" in the Account tab. When off, Google AdMob's SDK is not even loaded into memory.
 
 ---
 
@@ -62,8 +66,15 @@ Mood numbers, timestamps, and safety flags stay in plain text **forever** — th
 
 1. **Google / Firebase** — stores all of it. Encrypted in transit (TLS) and at rest (Google's standard disk encryption). Google is a processor under our Data Processing Addendum.
 2. **OpenAI** — only when the "real AI" flag is enabled on your build. Your chat messages are sent to OpenAI's chat completion API. OpenAI is bound by our **Zero Data Retention agreement**, so they do not retain inputs/outputs for abuse monitoring. _If ZDR is not yet confirmed for your build, the flag is off and your chat goes to a local mock generator instead._
-3. **The VitaMood project owner** — has admin-level access to the Firebase project and can therefore read any document. During closed beta this access is used only for debugging reported issues.
-4. **No one else.** We do not sell or share your data. There are no advertisers and no third-party analytics.
+3. **Google AdMob (conditional subprocessor)** — only when you have toggled "Show support ads" on in the Account tab. When enabled:
+   - AdMob receives your **advertising identifier**, **approximate location** (country-level, derived from IP), and **device type** on every ad request.
+   - We request **non-personalized ads only** via `requestNonPersonalizedAdsOnly: true`, so AdMob does not use cross-app behavioral data to target you — only contextual information about the current app.
+   - Ads are filtered against an aggressive blocklist in the AdMob console (alcohol, gambling, dating, weight loss, pharmaceutical, crypto/trading, religion, politics) and the maximum content rating is set to **G (General audiences)**. These filters are best-effort from Google's side; they dramatically reduce but do not eliminate the chance of an unexpected ad category.
+   - Banners appear ONLY on the Account tab and the Exercises tab. Never on home, chat, check-in, the crisis screen, any exercise player, gratitude, onboarding, or legal screens.
+   - Turn it off in the Account tab → Privacy → "Show support ads" → toggle off. Ads disappear immediately.
+   - When ads are off, the AdMob SDK is never initialized — no tracker fires, no network request is made to Google's ad servers, and no advertising identifier is read.
+4. **The VitaMood project owner** — has admin-level access to the Firebase project and can therefore read any document. During closed beta this access is used only for debugging reported issues.
+5. **No one else.** We do not sell or share your data. There are no analytics SDKs.
 
 ---
 

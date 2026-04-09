@@ -27,7 +27,7 @@ const POINTS: Point[] = [
   {
     index: "01",
     title: "Just what we need",
-    body: "Your email, your daily mood and energy, and anything you choose to write or say. Nothing else — no contacts, no location, no advertising trackers.",
+    body: "Your email, your daily mood and energy, and anything you choose to write or say. No contacts, no location, no analytics trackers.",
   },
   {
     index: "02",
@@ -36,6 +36,11 @@ const POINTS: Point[] = [
   },
   {
     index: "03",
+    title: "Ads are opt-in",
+    body: "A small support banner on the Account and Exercises tabs — off by default, off unless you turn it on, never anywhere else.",
+  },
+  {
+    index: "04",
     title: "Yours to take or delete",
     body: "Export everything as a file, or delete your account and all of its data, any time, from settings. One tap.",
   },

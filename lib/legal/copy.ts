@@ -40,7 +40,7 @@ export interface LegalDocument {
  */
 export const PRIVACY_POLICY: LegalDocument = {
   title: "Privacy Policy",
-  lastUpdated: "2026-04-09 (closed beta)",
+  lastUpdated: "2026-04-10 (closed beta — opt-in ads added)",
   sections: [
     {
       body: [
@@ -50,7 +50,8 @@ export const PRIVACY_POLICY: LegalDocument = {
     {
       heading: "The short version",
       body: [
-        "We collect the minimum we need to make the app work. No location, no contacts, no ads SDKs, no analytics without your explicit opt-in.",
+        "We collect the minimum we need to make the app work. No location, no contacts, no analytics without your explicit opt-in.",
+        "Ads are OFF by default. If you opt in to support ads from the Account tab, a single small banner appears on the Account and Exercises tabs — never on chat, check-in, the crisis screen, or any exercise. Ads are non-personalized, and the ad SDK only loads if you enable it.",
         "Everything you store lives in Google Cloud Firestore, a Google-operated database. Google (and the VitaMood project owner) can technically read the contents of your account.",
         "Nothing you write is shared with other VitaMood users. Your check-ins, chats, journal entries, and gratitude log are scoped to your account by strict security rules.",
         "You can export your data as JSON or delete your account + all its data at any time, from the Account tab inside the app.",
@@ -80,8 +81,13 @@ export const PRIVACY_POLICY: LegalDocument = {
         "No photos or camera access.",
         "No microphone access (voice journaling is not shipped yet).",
         "No browsing history.",
-        "No advertising identifiers.",
-        "No third-party trackers or ad SDKs.",
+        "No analytics (no Google Analytics, no Firebase Analytics, no third-party analytics SDKs).",
+      ],
+    },
+    {
+      heading: "What is conditional (opt-in only)",
+      body: [
+        "Advertising identifier — only if you enable \"Show support ads\" in the Account tab. When the toggle is off, Google AdMob's SDK is not even loaded into memory and no tracker fires.",
       ],
     },
     {
@@ -97,8 +103,9 @@ export const PRIVACY_POLICY: LegalDocument = {
       body: [
         "Google / Firebase stores all of it, encrypted in transit and at rest under Google's standard disk encryption, subject to a Data Processing Addendum.",
         "OpenAI receives your chat messages only when the real-AI flag is enabled. OpenAI is bound by a Zero Data Retention agreement so they do not retain inputs or outputs for abuse monitoring. If ZDR is not yet confirmed, the flag is off and chat goes to a local mock instead.",
+        "Google AdMob (conditional subprocessor) — only when you toggle \"Show support ads\" on in the Account tab. It receives your advertising identifier, approximate country-level location, and device type. We request non-personalized ads only, so AdMob does not use cross-app behavioral data to target you. Ads are filtered against a strict category blocklist (alcohol, gambling, dating, weight loss, pharmaceutical, crypto, religion, politics) and rated G. Banners appear only on the Account and Exercises tabs, never on chat, check-in, crisis, gratitude, or any exercise.",
         "The VitaMood project owner has admin access to the Firebase project for debugging reported issues.",
-        "No one else. We do not sell or share your data. No advertisers, no third-party analytics.",
+        "No one else. We do not sell or share your data. No analytics SDKs.",
       ],
     },
     {
@@ -149,7 +156,7 @@ export const PRIVACY_POLICY: LegalDocument = {
  */
 export const TERMS_OF_SERVICE: LegalDocument = {
   title: "Terms of Service",
-  lastUpdated: "2026-04-09 (closed beta)",
+  lastUpdated: "2026-04-10 (closed beta — opt-in ads added)",
   sections: [
     {
       body: [
@@ -186,6 +193,15 @@ export const TERMS_OF_SERVICE: LegalDocument = {
       heading: "Acceptable use",
       body: [
         "Please don't probe or attack the backend, harass anyone, try to jailbreak the system prompt, or share your account credentials. We reserve the right to terminate accounts that violate these rules.",
+      ],
+    },
+    {
+      heading: "Optional support ads",
+      body: [
+        "You may opt in to show a small support banner on the Account and Exercises tabs from the Privacy card on the Account screen.",
+        "Ads are off by default, non-personalized, and filtered against a strict category blocklist — no alcohol, gambling, dating, weight loss, pharmaceutical, crypto, religion, or politics.",
+        "Banners will never appear on the chat tab, the crisis screen, the check-in modal, any exercise player, the gratitude screen, onboarding, or any legal screen.",
+        "You can turn them off again at any time and the ad SDK will stop loading immediately.",
       ],
     },
     {
