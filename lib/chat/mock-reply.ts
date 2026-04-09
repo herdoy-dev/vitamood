@@ -2,6 +2,7 @@ import {
   describeTodayExercises,
   type ChatContext,
 } from "@/lib/chat/context";
+import { containsCrisisLanguage } from "@/lib/safety/keyword-scan";
 
 /**
  * Mock reply generator for the chat surface.
@@ -31,23 +32,10 @@ import {
  * someone who said "I'm not okay".
  */
 
-const CRISIS_KEYWORDS = [
-  "kill myself",
-  "suicide",
-  "suicidal",
-  "end it",
-  "want to die",
-  "hurt myself",
-  "self-harm",
-  "selfharm",
-  "no point",
-  "not worth it",
-];
-
-function containsCrisisLanguage(message: string): boolean {
-  const lower = message.toLowerCase();
-  return CRISIS_KEYWORDS.some((kw) => lower.includes(kw));
-}
+// Crisis keyword scanner moved to lib/safety/keyword-scan.ts so the
+// safety contract tests can import it without pulling in chat-context
+// types, and so the list lives alongside other safety infrastructure
+// for easy audit (PLAN.md §4.6).
 
 function pick<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)];
