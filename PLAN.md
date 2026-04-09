@@ -429,7 +429,7 @@ A reality check against the roadmap below. Most of Milestones 1–2 are in place
 - **Onboarding** — Full 6-step flow: `intro`, `privacy`, `safety`, `age-gate` (+ `age-refusal`), `consent`, `profile`. Shared shell in `components/onboarding/onboarding-shell.tsx`. Consent storage in `lib/profile/consent.ts`. Wellness tip shown on each screen (`constants/wellness-tips.ts`).
 - **Daily check-in** — `app/checkin.tsx` + `lib/checkin/index.ts`. Mood/energy sliders, optional note, tags, 7-day reads.
 - **Home tab** — Greeting, today's check-in card, yesterday line, weekly-dots tally (no streaks), chat entry card, daily wellness tip, gratitude entry card, and a "what you've been leaning on" coping-toolkit card (conditional on today's mood ≤ 2, surfaces the top 3 most-completed exercises from the last 30 days via `getMostCompletedExercises`).
-- **Chat tab** — UI shell with bubble layout, auto-scroll, keyboard avoidance. Conversations persisted to Firestore (`lib/chat/conversations.ts`). Context builder in `lib/chat/context.ts`. **Replies come from `lib/chat/mock-reply.ts` — no real AI yet.**
+- **Chat tab** — UI shell with bubble layout, auto-scroll, keyboard avoidance. Conversations persisted to Firestore (`lib/chat/conversations.ts`). Context builder in `lib/chat/context.ts`. Cloud Function scaffold for the real OpenAI path lives in `functions/` (see §10.5). Client flag `EXPO_PUBLIC_USE_REAL_AI=1` switches from `lib/chat/mock-reply.ts` to `chatWithAria` via `lib/chat/ai-client.ts`, with automatic fallback to the mock on any error. **Default is still the mock** until the function is deployed with an OpenAI key + Zero Data Retention.
 - **Exercises** — 4 of 5 implemented: box breathing, 5-4-3-2-1 grounding, body scan, loving-kindness. Player at `app/exercise/[id].tsx`, session hook in `lib/exercises/use-exercise-session.ts`.
 - **Insights** — `components/insights/mood-chart.tsx`, local-only (no GPT summary). Tag-correlation callout (`lib/insights/tag-correlations.ts`) surfaces a single positive mood/tag pattern from the last 30 days when thresholds are met (≥3 tagged + ≥3 untagged days, Δ ≥ 0.5 mood points).
 - **Crisis** — `app/crisis.tsx` always reachable, hardcoded `constants/resources.ts`, locale detection in `lib/safety/locale.ts`.
@@ -443,21 +443,26 @@ A reality check against the roadmap below. Most of Milestones 1–2 are in place
 - Google Sign-In via `expo-auth-session` (only email/password works).
 - CI pipeline (TypeScript / ESLint / rules tests / safety contract tests / prompt snapshot).
 
-**M3 AI chat — nothing real exists**
-- No `functions/` directory. No Cloud Functions project at all.
-- OpenAI Cloud Function proxy with per-user token metering (`users/{uid}/usage/{YYYY-MM}`).
-- Locked system prompt `lib/openai/prompts/aria.v1.ts` + snapshot test.
-- Streaming responses, conversation summarizer (20-msg rollover), recent-mood context injection.
-- "Save this insight" bookmarking into `users/{uid}/savedInsights/{id}`.
-- Client-side encryption of message text (`contentEnc` via PBKDF2 + AES-GCM, key in `expo-secure-store`). Chat is currently plaintext in Firestore.
-- **OpenAI Zero Data Retention** application — not filed. Hard launch blocker.
+**M3 AI chat — scaffolded but not deployed**
+- ✅ `functions/` directory exists with TypeScript setup, package.json, tsconfig, and a `chatWithAria` callable.
+- ✅ Cloud Function proxy with per-user token + message budgets enforced in-function (`functions/src/usage.ts`), checked before every OpenAI call and incremented after. Budgets are constants, not Firestore config — any change requires a redeploy on purpose.
+- ✅ Locked system prompt `functions/src/prompts/aria.v1.ts` + client mirror `lib/openai/prompts/aria.v1.ts`. Snapshot test still missing.
+- ✅ Client flag `EXPO_PUBLIC_USE_REAL_AI=1` + `lib/chat/ai-client.ts` wrapper + chat tab fallback to mock on failure.
+- ⬜ **Deploy** — requires Firebase Blaze upgrade, `firebase functions:secrets:set OPENAI_API_KEY`, and `bun run deploy` inside `functions/`. See `functions/README.md` for the checklist.
+- ⬜ Streaming responses (function currently returns the full reply in one shot).
+- ⬜ Conversation summarizer (20-msg rollover) as a Firestore trigger.
+- ⬜ "Save this insight" bookmarking into `users/{uid}/savedInsights/{id}`.
+- ⬜ Client-side encryption of message text (`contentEnc` via PBKDF2 + AES-GCM, key in `expo-secure-store`). Chat is currently plaintext in Firestore.
+- ⬜ **OpenAI Zero Data Retention** application — not filed. Hard launch blocker before any non-test user touches the deployed function.
 
 **M4 safety gaps**
-- Real moderation pipeline (OpenAI Moderation API + tighter keyword layer, server-side). Current `mock-reply.ts` has ~10 English keywords as a placeholder only.
-- Safety contract tests (§4.6) — no test suite exists.
+- ✅ Server-side moderation — the `chatWithAria` callable runs OpenAI's Moderation API on every inbound user message and short-circuits with `flagged: true` on a hit, never passing the message through to chat completion.
+- ⬜ Tighter custom keyword layer (Spanish + metaphorical phrasings) alongside moderation.
+- ⬜ Surfacing the crisis card automatically when the chat UI receives `flagged: true` — the Cloud Function returns the flag, but the client still relies on the always-visible HelpButton rather than rendering an inline crisis response.
+- ⬜ Safety contract tests (§4.6) — no test suite exists.
 
-**M5 exercises**
-- Post-exercise "was this helpful?" rating UI — `helpfulRating` is still written by nothing. The Home tab's coping-toolkit card sorts by completion count as a proxy until this lands.
+**M5 exercises** — ✅ complete
+- Post-exercise "was this helpful?" rating widget shipped (`components/exercises/completion-rating.tsx`, integrated into all 5 players). Writes `helpfulRating` to `users/{uid}/exercises/{logId}`. Home tab's coping toolkit now prefers `helpfulRating` averages once there's enough signal and falls back to completion counts before that.
 
 **M6 insights**
 - Lazy weekly insight Cloud Function (blocked on the `functions/` dir).

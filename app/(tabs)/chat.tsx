@@ -19,6 +19,7 @@ import {
   loadMessages,
 } from "@/lib/chat/conversations";
 import { generateMockReply } from "@/lib/chat/mock-reply";
+import { chatWithAria, useRealAi } from "@/lib/chat/ai-client";
 
 /**
  * Chat tab — AI companion (PLAN.md §4.3).
@@ -173,16 +174,58 @@ export default function ChatTab() {
       ]);
     }
 
-    // Generate a context-aware mock reply on a short delay so the
-    // typing indicator gets a moment to land. Real LLM lands in K4.
+    // Decide whether to call the real Cloud Function or the mock.
+    // The flag is off by default — flipping it on requires a deployed
+    // function + OpenAI billing + ZDR (PLAN.md §9). See ai-client.ts.
+    // On any failure we fall back to the mock so dev UX stays OK.
+    const realAi = useRealAi();
+
     setTimeout(async () => {
-      const replyText = chatContext
-        ? generateMockReply({
-            userMessage: trimmed,
-            context: chatContext,
-            isFirstMessage,
-          })
-        : "I'm here. Tell me a little more about what's going on.";
+      let replyText: string;
+
+      if (realAi && user) {
+        try {
+          const recentHistory = messages
+            .slice(-20)
+            .map((m) => ({ role: m.role, content: m.content }));
+          const response = await chatWithAria({
+            message: trimmed,
+            history: recentHistory,
+            profile: {
+              name: chatContext?.profile?.name,
+              goals: chatContext?.profile?.goals,
+              recentMood: chatContext?.todayCheckIn?.mood,
+              recentEnergy: chatContext?.todayCheckIn?.energy,
+            },
+          });
+          replyText = response.reply;
+          // `flagged=true` means the moderation backstop intercepted
+          // the message. Future work: surface the crisis card inline
+          // here. For now we just render the reply and trust the
+          // always-visible HelpButton — which is the primary safety
+          // net per PLAN.md §4.6.
+        } catch (err) {
+          console.warn(
+            "Real chat call failed, falling back to mock:",
+            err,
+          );
+          replyText = chatContext
+            ? generateMockReply({
+                userMessage: trimmed,
+                context: chatContext,
+                isFirstMessage,
+              })
+            : "I'm here. Tell me a little more about what's going on.";
+        }
+      } else {
+        replyText = chatContext
+          ? generateMockReply({
+              userMessage: trimmed,
+              context: chatContext,
+              isFirstMessage,
+            })
+          : "I'm here. Tell me a little more about what's going on.";
+      }
 
       try {
         const persistedReply = await appendMessage(user.uid, conversationId, {
