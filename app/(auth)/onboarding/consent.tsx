@@ -126,6 +126,12 @@ export default function OnboardingConsent() {
           value={prefs.adaptiveReminders}
           onValueChange={() => toggle("adaptiveReminders")}
         />
+        <ConsentRow
+          title="Show support ads"
+          description="A small banner on the Account and Exercises tabs. Never on chat, check-in, exercises, or the crisis screen. Off by default."
+          value={prefs.adsEnabled}
+          onValueChange={() => toggle("adsEnabled")}
+        />
       </View>
     </OnboardingShell>
   );
