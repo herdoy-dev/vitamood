@@ -19,9 +19,10 @@ This is a closed beta. Public launch has its own (longer) checklist tracked in `
 7. [Google Play Console setup](#7-google-play-console-setup)
 8. [Upload the AAB and start Internal Testing](#8-upload-the-aab-and-start-internal-testing)
 9. [Before flipping `EXPO_PUBLIC_USE_REAL_AI=1`](#9-before-flipping-expo_public_use_real_ai1)
-10. [Monitoring](#10-monitoring)
-11. [Rollback](#11-rollback)
-12. [Deferred to public launch (explicit list)](#12-deferred-to-public-launch-explicit-list)
+10. [AdMob setup (opt-in banner ads)](#10-admob-setup-opt-in-banner-ads)
+11. [Monitoring](#11-monitoring)
+12. [Rollback](#12-rollback)
+13. [Deferred to public launch (explicit list)](#13-deferred-to-public-launch-explicit-list)
 
 ---
 
@@ -285,7 +286,93 @@ The real-AI path has a per-user hard cap of **50 messages/day and 200k tokens/mo
 
 ---
 
-## 10. Monitoring
+## 10. AdMob setup (opt-in banner ads)
+
+The app ships with `react-native-google-mobile-ads` integrated but **ads are off by default for every user**. A user must explicitly toggle "Show support ads" in the Account tab → Privacy settings (or in the onboarding consent step) before any ad loads. When off, the AdMob SDK never initializes — no network requests, no tracker, no advertising identifier read.
+
+### 10.1 Expo Go is gone
+
+Adding `react-native-google-mobile-ads` ended the Expo Go dev workflow for this project. From the commit that installed it forward, dev requires a **custom dev client** via EAS Build:
+
+```bash
+bunx eas build --profile development --platform android
+```
+
+First custom dev client build: ~20 minutes. After that, the client app stays installed and you reload over the LAN / tunnel as usual with `bunx expo start --dev-client`.
+
+### 10.2 AdMob account + ad unit creation
+
+You already have the Android IDs wired in `.env` and `app.json`:
+
+- **Android App ID**: `ca-app-pub-7106488480723857~9258505589`
+- **Android Ad Unit ID (Adaptive Banner)**: `ca-app-pub-7106488480723857/4728436896`
+
+iOS is parked with an empty App ID — revisit when iOS ships.
+
+The Ad Unit ID is read at runtime by `components/ads/support-banner-ad.tsx` via `process.env.EXPO_PUBLIC_ADMOB_BANNER_ANDROID`. In `__DEV__` builds the component falls back to Google's official `TestIds.ADAPTIVE_BANNER` so you can verify the integration without spending anything or risking a policy strike from clicking your own live ads.
+
+### 10.3 Content filter — DO THIS BEFORE FIRST LIVE IMPRESSION
+
+AdMob's client-side content rating is set to **G (General audiences)** in `lib/ads/init.ts`. On top of that, you MUST configure the server-side category blocklist in the AdMob console, or the worst ad categories will still slip through.
+
+**In the AdMob console → your app → Blocking controls → Content:**
+
+Block all of these categories:
+
+- [ ] Alcohol
+- [ ] Gambling / Sports betting / Lottery
+- [ ] Dating / Adult / Romance
+- [ ] Weight loss / Before-after fitness / Body image
+- [ ] Pharmaceutical / Prescription / Supplements / "Cure your anxiety" copy
+- [ ] Cryptocurrency / Trading / Forex / "Financial opportunity"
+- [ ] Astrology / Tarot / Psychic / Mediums
+- [ ] Religion / Politics / Controversial issues
+- [ ] Get-rich-quick / MLM
+- [ ] Cosmetic surgery
+
+Set **Ad content rating: G (General audiences only)**.
+
+You will earn less per impression with these blocks in place. That's the trade-off and it's non-negotiable for a mental-health app. Banners on the chat tab of a mental-health app that serves a sports-betting promo is a news-worthy failure mode — don't be that news story.
+
+### 10.4 Register a test device (prevent self-clicks)
+
+Before the first release with live ad IDs, add your own Android device as a test device in the AdMob console so clicking the banner during QA doesn't trigger AdMob's invalid-click detection and suspend your account.
+
+1. Build and install the app once with live ad IDs.
+2. Look in `adb logcat` for the line that says something like:
+   ```
+   I/Ads: Use RequestConfiguration.Builder.setTestDeviceIds(["YOUR-HASH"])
+   ```
+3. Copy that hash.
+4. AdMob console → Settings → Test devices → Add → paste the hash.
+
+### 10.5 Test the pipeline end-to-end
+
+With the app running on your dev device:
+
+1. **Off by default** — open the app as a brand-new user. Go to the Account tab. Verify: no banner visible. Scroll through Exercises tab. Verify: no banner. `adb logcat | grep -i admob` should show no init lines.
+2. **Toggle on** — Account → Privacy → edit consent → "Show support ads" → on. Return to Account tab. A Google test banner should appear above the sign-out button within 1–3 seconds. Scroll the Exercises tab — a test banner appears at the bottom of the list.
+3. **Toggle off** — flip it back off. Banners should disappear from both tabs immediately, no restart needed.
+4. **Protected surface check** — verify (eyeball, then grep `BannerAd` to confirm in code) that NO banner is visible on: home, chat, check-in, crisis, any exercise player, gratitude, onboarding, legal, delete-account, export-data, edit-profile, edit-consent. This is the load-bearing check; if anything is wrong, fix it before the next build.
+5. **Cold start with ads on** — kill the app, reopen. The banner on the Account tab should come back, not require another toggle.
+
+### 10.6 Before flipping live ad IDs for production
+
+The same "flip with care" discipline that applies to `EXPO_PUBLIC_USE_REAL_AI` applies here. Before the first AAB that ships with live ad unit IDs:
+
+- [ ] Content filter blocklist applied in the AdMob console (§10.3)
+- [ ] Test device registered so your own clicks are invalidated (§10.4)
+- [ ] Privacy policy + ToS in the app reflect AdMob as a conditional subprocessor (already committed — verify by tapping Account → Legal → Privacy policy on the device)
+- [ ] In Google Play Console → Data safety form, add "Device or other IDs (advertising ID)" and "App activity (ad interactions)" as collected data, mark them **optional**, and list **Google AdMob** as a subprocessor. Required before the next Play review.
+- [ ] `EXPO_PUBLIC_ADMOB_BANNER_ANDROID` is set in the EAS build env for the production profile. If it's empty in a production build, the banner returns null — safe failure but also zero revenue.
+
+### 10.7 When ads don't earn — don't push harder
+
+At closed-beta scale (20–30 users) ads will earn effectively zero. That's expected and was not a surprise. The rule from PLAN.md §12 stands: **if cost pressure ever becomes real, the response is tightening the per-user token caps in `functions/src/usage.ts`, not pushing ads onto more surfaces.** Do not add a third placement without revisiting the plan.
+
+---
+
+## 11. Monitoring
 
 Closed beta does not yet have Crashlytics (that lands with the M7 migration to `@react-native-firebase/*`). Monitor via:
 
@@ -301,15 +388,15 @@ Check in every day or two during the first week. The single biggest thing you wa
 
 ---
 
-## 11. Rollback
+## 12. Rollback
 
 Things break. When they do:
 
-### 11.1 Halt the rollout
+### 12.1 Halt the rollout
 
 Play Console → Internal testing → **Halt rollout**. Existing installs keep the broken version but nobody else downloads it.
 
-### 11.2 Roll back the Cloud Function
+### 12.2 Roll back the Cloud Function
 
 Check out a previous commit and redeploy:
 
@@ -323,7 +410,7 @@ git checkout main
 
 Cloud Functions retain deployment history — you can also use the GCP console (Cloud Functions → Revisions → Rollback) as a faster path.
 
-### 11.3 Roll back Firestore rules
+### 12.3 Roll back Firestore rules
 
 ```bash
 git checkout <previous-sha> -- firestore.rules
@@ -331,13 +418,13 @@ firebase deploy --only firestore:rules
 git checkout main -- firestore.rules
 ```
 
-### 11.4 Roll back the client
+### 12.4 Roll back the client
 
 Build a new AAB from the previous commit and push it as a new release with a higher `versionCode` (Play never accepts a lower one).
 
 ---
 
-## 12. Deferred to public launch (explicit list)
+## 13. Deferred to public launch (explicit list)
 
 These are known gaps that are acceptable for closed beta but must be closed before the app goes public:
 
