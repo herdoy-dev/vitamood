@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { CompletionRating } from "@/components/exercises/completion-rating";
 import { StepProgress } from "@/components/exercises/step-progress";
 import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
@@ -166,6 +167,10 @@ export function ThoughtReframingPlayer() {
             </Text>
           </Card>
         )}
+
+        <View className="mt-6">
+          <CompletionRating logId={session.logId} />
+        </View>
 
         <View className="gap-3 mt-8">
           <Button

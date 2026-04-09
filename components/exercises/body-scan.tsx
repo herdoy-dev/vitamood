@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
 import { StepProgress } from "@/components/exercises/step-progress";
+import { CompletionRating } from "@/components/exercises/completion-rating";
 import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
 /**
@@ -83,8 +84,8 @@ export function BodyScanPlayer() {
 
   if (done) {
     return (
-      <Screen>
-        <View className="flex-1 items-center justify-center gap-6">
+      <Screen scroll>
+        <View className="items-center gap-4 py-4">
           <Text className="text-6xl">🧘</Text>
           <Text variant="display" className="text-primary text-center">
             Welcome back.
@@ -94,7 +95,10 @@ export function BodyScanPlayer() {
             harder than it sounds, and you did it.
           </Text>
         </View>
-        <View className="gap-3 mb-6">
+        <View className="mt-6">
+          <CompletionRating logId={session.logId} />
+        </View>
+        <View className="gap-3 mt-8 mb-6">
           <Button
             label="Do it again"
             onPress={() => {

@@ -9,6 +9,7 @@ import Animated, {
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
+import { CompletionRating } from "@/components/exercises/completion-rating";
 import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
 /**
@@ -50,6 +51,11 @@ export function BoxBreathingPlayer() {
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [running, setRunning] = useState(true);
   const [cycles, setCycles] = useState(0);
+  // Box breathing has no fixed endpoint so the user ends it manually.
+  // When they tap End we save the log and switch into `done=true`,
+  // which renders a completion + rating view rather than popping
+  // straight back to the exercises tab. Matches the other players.
+  const [done, setDone] = useState(false);
   // Mirror cycles into a ref so the End handler reads the latest
   // value at the moment of save without stale-closure issues.
   const cyclesRef = useRef(0);
@@ -112,6 +118,46 @@ export function BoxBreathingPlayer() {
 
   const phase = PHASES[phaseIndex];
 
+  if (done) {
+    const completedCycles = cyclesRef.current;
+    return (
+      <Screen scroll>
+        <View className="items-center gap-4 py-4">
+          <Text className="text-6xl">🌬️</Text>
+          <Text variant="display" className="text-primary text-center">
+            Nicely done.
+          </Text>
+          <Text variant="muted" className="text-center px-4">
+            {completedCycles > 0
+              ? `${completedCycles} full ${completedCycles === 1 ? "cycle" : "cycles"}. That's a real pause.`
+              : "A pause is a pause. Come back whenever you need it."}
+          </Text>
+        </View>
+        <View className="mt-6">
+          <CompletionRating logId={session.logId} />
+        </View>
+        <View className="gap-3 mt-8 mb-6">
+          <Button
+            label="Do it again"
+            onPress={() => {
+              setCycles(0);
+              cyclesRef.current = 0;
+              setPhaseIndex(0);
+              setRunning(true);
+              setDone(false);
+            }}
+          />
+          <Button
+            label="End"
+            variant="ghost"
+            size="lg"
+            onPress={() => router.back()}
+          />
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <View className="flex-1 items-center justify-between py-8">
@@ -145,6 +191,9 @@ export function BoxBreathingPlayer() {
             variant="ghost"
             size="lg"
             onPress={async () => {
+              // Pause the ticker immediately so the animation doesn't
+              // keep running behind the done view.
+              setRunning(false);
               // Box breathing has no fixed step count — we treat
               // it as "complete" if the user managed at least one
               // full cycle.
@@ -153,7 +202,7 @@ export function BoxBreathingPlayer() {
                 totalSteps: 1,
                 cycles: cyclesRef.current,
               });
-              router.back();
+              setDone(true);
             }}
           />
         </View>

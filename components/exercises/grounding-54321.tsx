@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Screen } from "@/components/ui/screen";
 import { Text } from "@/components/ui/text";
 import { StepProgress } from "@/components/exercises/step-progress";
+import { CompletionRating } from "@/components/exercises/completion-rating";
 import { useExerciseSession } from "@/lib/exercises/use-exercise-session";
 
 /**
@@ -98,8 +99,8 @@ export function Grounding54321Player() {
 
   if (done) {
     return (
-      <Screen>
-        <View className="flex-1 items-center justify-center gap-6">
+      <Screen scroll>
+        <View className="items-center gap-4 py-4">
           <Text className="text-6xl">🪨</Text>
           <Text variant="display" className="text-primary text-center">
             Nicely done.
@@ -109,7 +110,10 @@ export function Grounding54321Player() {
             to this whenever you need a way out of a spiral.
           </Text>
         </View>
-        <View className="gap-3 mb-6">
+        <View className="mt-6">
+          <CompletionRating logId={session.logId} />
+        </View>
+        <View className="gap-3 mt-8 mb-6">
           <Button
             label="Do it again"
             onPress={() => {

@@ -16,8 +16,8 @@ import { getProfile, type Profile } from "@/lib/profile/profile";
 import { getTipOfTheDay } from "@/constants/wellness-tips";
 import { findExercise } from "@/constants/exercises";
 import {
-  getMostCompletedExercises,
-  type ExerciseCompletionTally,
+  getRankedCopingExercises,
+  type RankedExercise,
 } from "@/lib/exercises";
 
 /**
@@ -50,14 +50,15 @@ export default function HomeTab() {
   const [profile, setProfile] = useState<Profile | null>(null);
   // undefined = loading, [] = loaded (might be empty), CheckInDay[] = window
   const [days, setDays] = useState<CheckInDay[] | undefined>(undefined);
-  // Top-N exercises the user has completed in the last 30 days.
-  // Only read/rendered on low-mood days (today.mood <= 2), but we
-  // fetch it on every focus anyway — the query is cheap and we'd
-  // rather the card be instantly visible when mood drops than wait
-  // for a second round-trip.
-  const [topExercises, setTopExercises] = useState<
-    ExerciseCompletionTally[]
-  >([]);
+  // Ranked coping-toolkit list for the last 30 days. Only rendered
+  // on low-mood days (today.mood <= 2), but fetched on every focus
+  // so the card is instantly visible when mood drops. `source` tells
+  // us whether the ranking is backed by real rating data or is just
+  // a completion-count fallback — the UI uses it for the caption.
+  const [coping, setCoping] = useState<{
+    ranked: RankedExercise[];
+    source: "helpful" | "completions";
+  }>({ ranked: [], source: "completions" });
 
   useFocusEffect(
     useCallback(() => {
@@ -65,7 +66,7 @@ export default function HomeTab() {
       if (!user) {
         setDays([]);
         setProfile(null);
-        setTopExercises([]);
+        setCoping({ ranked: [], source: "completions" });
         return;
       }
 
@@ -79,15 +80,18 @@ export default function HomeTab() {
           console.warn("Failed to load profile:", err);
           return null;
         }),
-        getMostCompletedExercises(user.uid, 30).catch((err) => {
-          console.warn("Failed to load exercise tally:", err);
-          return [] as ExerciseCompletionTally[];
+        getRankedCopingExercises(user.uid, 30).catch((err) => {
+          console.warn("Failed to load coping ranking:", err);
+          return {
+            ranked: [] as RankedExercise[],
+            source: "completions" as const,
+          };
         }),
-      ]).then(([dayWindow, prof, tally]) => {
+      ]).then(([dayWindow, prof, ranking]) => {
         if (cancelled) return;
         setDays(dayWindow);
         setProfile(prof);
-        setTopExercises(tally);
+        setCoping(ranking);
       });
 
       return () => {
@@ -192,27 +196,34 @@ export default function HomeTab() {
 
         {/* Coping toolkit — only on low-mood days, and only if we
             have at least one completed session to recommend. The
-            copy deliberately doesn't claim these exercises "help" —
-            until a real helpfulRating UI lands (PLAN.md §4.4) we
-            only know what the user has reached for, not what's
-            worked for them. "Leaning on" is the honest frame. */}
-        {today !== null && today.mood <= 2 && topExercises.length > 0 && (
+            framing shifts based on whether we have real rating
+            signal yet: "what's helped" once users have rated
+            enough sessions (getRankedCopingExercises returns
+            source='helpful'), otherwise the honest fallback
+            "what you've been leaning on". */}
+        {today !== null && today.mood <= 2 && coping.ranked.length > 0 && (
           <Card className="mt-3">
-            <Text variant="subtitle">What you've been leaning on</Text>
+            <Text variant="subtitle">
+              {coping.source === "helpful"
+                ? "What's been helping"
+                : "What you've been leaning on"}
+            </Text>
             <Text variant="caption" className="mt-1">
-              On lower days, here are exercises you've come back to.
+              {coping.source === "helpful"
+                ? "Based on what you've rated helpful recently."
+                : "On lower days, here are exercises you've come back to."}
             </Text>
             <View className="mt-4 gap-2">
-              {topExercises.slice(0, 3).map((tally) => {
-                const meta = findExercise(tally.exerciseId);
+              {coping.ranked.slice(0, 3).map((row) => {
+                const meta = findExercise(row.exerciseId);
                 if (!meta) return null;
                 return (
                   <Pressable
-                    key={tally.exerciseId}
+                    key={row.exerciseId}
                     accessibilityRole="button"
                     accessibilityLabel={`Open ${meta.title}`}
                     onPress={() =>
-                      router.push(`/exercise/${tally.exerciseId}`)
+                      router.push(`/exercise/${row.exerciseId}`)
                     }
                     className="flex-row items-center gap-3 rounded-2xl bg-bg px-4 py-3 active:opacity-70"
                   >
