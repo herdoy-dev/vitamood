@@ -42,7 +42,15 @@
           }
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-7106488480723857~9258505589",
+          "iosAppId": "ca-app-pub-0000000000000000~0000000000",
+          "userTrackingPermission": "This identifier will be used to deliver personalized ads to you. Off by default — you can opt in from the Account tab."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
