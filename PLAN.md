@@ -439,9 +439,11 @@ A reality check against the roadmap below. Most of Milestones 1–2 are in place
 ### ❌ Still missing (by milestone)
 
 **M1 foundation gaps**
-- Firestore security rules + `@firebase/rules-unit-testing` tests — no `firestore.rules` file in repo.
-- Google Sign-In via `expo-auth-session` (only email/password works).
-- CI pipeline (TypeScript / ESLint / rules tests / safety contract tests / prompt snapshot).
+- ✅ `firestore.rules` with ownership + schema-shape constraints (mood/energy bounds, content caps, role enums, tag vocabulary, `helpfulRating` 1..5, user-writable update surface on messages restricted to `{flagged, savedInsight}`, `users/{uid}/usage` client-read-only).
+- ✅ `firestore.indexes.json` placeholder + `firebase.json` with functions/emulators/firestore blocks.
+- ✅ `@firebase/rules-unit-testing` suite at `__tests__/firestore-rules.test.ts` — 25+ tests covering cross-user denial, `safety_logs` closure, schema validation, usage read-only, default-deny fallback.
+- ✅ GitHub Actions CI (`.github/workflows/ci.yml`) — four jobs: lint, tsc, unit tests (safety contract + prompt snapshot), and rules tests under the Firestore emulator.
+- ⬜ Google Sign-In via `expo-auth-session` (only email/password works).
 
 **M3 AI chat — scaffolded but not deployed**
 - ✅ `functions/` directory exists with TypeScript setup, package.json, tsconfig, and a `chatWithAria` callable.
@@ -457,9 +459,10 @@ A reality check against the roadmap below. Most of Milestones 1–2 are in place
 
 **M4 safety gaps**
 - ✅ Server-side moderation — the `chatWithAria` callable runs OpenAI's Moderation API on every inbound user message and short-circuits with `flagged: true` on a hit, never passing the message through to chat completion.
-- ⬜ Tighter custom keyword layer (Spanish + metaphorical phrasings) alongside moderation.
-- ⬜ Surfacing the crisis card automatically when the chat UI receives `flagged: true` — the Cloud Function returns the flag, but the client still relies on the always-visible HelpButton rather than rendering an inline crisis response.
-- ⬜ Safety contract tests (§4.6) — no test suite exists.
+- ✅ Client keyword scanner at `lib/safety/keyword-scan.ts` — expanded from ~10 entries to ~50 covering direct English, dissociative framings, sarcastic / minimizing phrasings, Spanish basic coverage, whitespace and curly-apostrophe normalization. Runs BEFORE any chat path (real or mock) — a flagged message never reaches OpenAI or the mock generator.
+- ✅ Inline crisis bubble in the chat tab when `flagged=true` — distinct terracotta-tinted card with an "Open help now" button. Redundant with the always-visible HelpButton per §4.6 "primary vs backstop".
+- ✅ Safety contract tests (`__tests__/safety-contract.test.ts`) — fixed corpus of 30+ crisis samples that MUST match, plus benign samples that MUST NOT. Append-only. Runs on every CI build.
+- ✅ System prompt snapshot test (`__tests__/prompt-snapshot.test.ts`) — diffs the client and server copies of `aria.v1.ts` byte-for-byte and guards the load-bearing immutable clauses.
 
 **M5 exercises** — ✅ complete
 - Post-exercise "was this helpful?" rating widget shipped (`components/exercises/completion-rating.tsx`, integrated into all 5 players). Writes `helpfulRating` to `users/{uid}/exercises/{logId}`. Home tab's coping toolkit now prefers `helpfulRating` averages once there's enough signal and falls back to completion counts before that.
@@ -469,16 +472,23 @@ A reality check against the roadmap below. Most of Milestones 1–2 are in place
 - Pattern detection copy ("you feel better on days you walked") — no correlator yet, though tags are being collected.
 
 **M7 polish**
-- Data export (JSON + Markdown) and one-tap account deletion (recursive Cloud Function).
-- Migration from `firebase` JS SDK → `@react-native-firebase/*`.
-- FCM push / adaptive reminders.
-- Voice note upload to Firebase Storage (check-in voice note path exists in the schema but not in the UI).
-- Crashlytics + privacy-respecting analytics.
+- ✅ Data export (JSON via `lib/account/export.ts`, handed to React Native's built-in Share API from `app/export-data.tsx`).
+- ✅ Account deletion (client-side recursive delete via `lib/account/delete.ts`: paginated batched delete across every subcollection in parallel, then conversations → messages serially, then top-level user doc, then `deleteUser` on the Auth record). Confirmation gated by typing DELETE in `app/delete-account.tsx`.
+- ✅ Privacy policy + Terms of service drafted (`legal/privacy-policy.md`, `legal/terms-of-service.md`) with TS mirrors rendered in-app at `app/legal/privacy.tsx` and `app/legal/terms.tsx`. Linked from the onboarding consent step and the Account tab.
+- ✅ Android package id (`com.vitamood.app`) + `eas.json` with development/preview/production profiles. Production profile ships with `EXPO_PUBLIC_USE_REAL_AI=0` as the default — flipping it is a runbook step, not a config default.
+- ✅ Inline crisis card in chat (moved here from M4).
+- ⬜ Recursive delete via Cloud Function (the client-side path is fine for closed beta but fragile at public-launch scale).
+- ⬜ Migration from `firebase` JS SDK → `@react-native-firebase/*`.
+- ⬜ FCM push / adaptive reminders (depends on the RN Firebase migration).
+- ⬜ Voice note upload to Firebase Storage.
+- ⬜ Crashlytics + privacy-respecting analytics (depends on the RN Firebase migration).
 
-**Compliance / external**
-- DPAs with OpenAI + Google.
-- Trademark search on "VitaMood" and "Aria".
-- Privacy policy + ToS hosted.
+**Compliance / external** (all runbook items — `DEPLOY.md`)
+- ⬜ OpenAI Zero Data Retention application.
+- ⬜ DPAs with OpenAI + Google.
+- ⬜ Trademark search on "VitaMood" and "Aria".
+- ⬜ Hosted privacy policy + ToS at a public URL for the Play Store listing.
+- ⬜ Clinical advisor sign-off.
 
 ### 🎯 Near-term additions (fit §1 principles, no backend needed)
 
@@ -492,7 +502,18 @@ These were identified on 2026-04-09 as high-value things we can build **before**
 
 ### Follow-ups unlocked by this sprint
 
-- **Post-exercise "was this helpful?" rating** — until this lands, the coping toolkit falls back on "most completed" as a proxy for "most valuable". Ideally a one-tap 1–5 or 👍/👎 on every exercise done-screen that writes `helpfulRating` into `users/{uid}/exercises/{logId}`. Then sort by average rating instead of count.
+- ✅ **Post-exercise "was this helpful?" rating** shipped — `components/exercises/completion-rating.tsx` integrated into all 5 players, `rateExerciseLog` writes the rating, `getRankedCopingExercises` prefers the helpful-rating sort once there's signal.
+
+### 🚀 Internal Testing readiness (as of 2026-04-10)
+
+The app is code-ready for a Google Play **Internal Testing** rollout to 20–30 closed-beta testers. The full runbook lives at `DEPLOY.md` — the outstanding items are all external (ZDR, DPAs, Blaze upgrade, Play Console setup, AAB upload), not code. Deliberately deferred from beta to public launch:
+
+- Client-side AES-GCM encryption of chat / gratitude / journal text (mitigated by the onboarding consent screen explicitly telling testers the beta stores free-text in plain text).
+- OpenAI ZDR confirmation before the `EXPO_PUBLIC_USE_REAL_AI` flag is ever flipped — the flag is OFF in every EAS build profile by default.
+- Recursive account delete via Cloud Function (the current client-side path is fine for closed beta).
+- Clinical advisor review, trademark search, DPAs.
+- Crashlytics + FCM (depends on the `@react-native-firebase/*` migration).
+- Public Play Store listing copy + screenshots + video.
 
 ---
 
