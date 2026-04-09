@@ -19,6 +19,7 @@ import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LockScreen } from "@/components/lock/lock-screen";
 import { HelpButton } from "@/components/safety/help-button";
+import { AnimatedSplash } from "@/components/splash/animated-splash";
 import { useAdConsent } from "@/lib/ads/consent";
 import { initializeAdMobIfNeeded } from "@/lib/ads/init";
 import { AuthProvider } from "@/lib/auth/auth-context";
@@ -58,6 +59,12 @@ export default function RootLayout() {
             <HelpButton />
             <LockGate />
             <AdMobGate />
+            {/* Animated splash overlay — unmounts itself after the
+                breathing animation + fade-out completes (~2s). Sits
+                on top of the Stack so the app underneath renders
+                and becomes interactive immediately; the splash is
+                purely visual. See components/splash/animated-splash.tsx. */}
+            <AnimatedSplash />
             <ThemedStatusBar />
           </BiometricLockProvider>
         </AuthProvider>
