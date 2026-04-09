@@ -31,6 +31,7 @@ export default function OnboardingConsent() {
     aiMemoryEnabled: false,
     safetyLogOptIn: false,
     adaptiveReminders: false,
+    adsEnabled: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

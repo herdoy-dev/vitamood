@@ -49,6 +49,7 @@ export default function EditConsent() {
             aiMemoryEnabled: false,
             safetyLogOptIn: false,
             adaptiveReminders: false,
+            adsEnabled: false,
           },
         );
       })

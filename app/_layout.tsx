@@ -19,6 +19,8 @@ import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LockScreen } from "@/components/lock/lock-screen";
 import { HelpButton } from "@/components/safety/help-button";
+import { useAdConsent } from "@/lib/ads/consent";
+import { initializeAdMobIfNeeded } from "@/lib/ads/init";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { BiometricLockProvider, useLock } from "@/lib/lock/lock-context";
 import { ThemeProvider } from "@/lib/theme/theme-context";
@@ -55,12 +57,40 @@ export default function RootLayout() {
             <Stack screenOptions={{ headerShown: false }} />
             <HelpButton />
             <LockGate />
+            <AdMobGate />
             <ThemedStatusBar />
           </BiometricLockProvider>
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
+}
+
+/**
+ * Invisible gate that lazy-initializes AdMob the first time a
+ * signed-in user has `adsEnabled=true` in their consent doc.
+ *
+ * Lives as a sibling of <LockGate /> so it can consume the ad
+ * consent hook (which reads the user's Firestore settings) and
+ * react to changes without coupling to the auth provider. The
+ * initializer itself is idempotent — calling it twice is a no-op.
+ *
+ * On a true→false transition (user turns ads off) we DO NOT
+ * un-initialize the SDK. The SDK doesn't expose a clean teardown,
+ * and the ad component's own gate ensures nothing renders anyway.
+ * The SDK stays dormant in memory until the next app launch,
+ * which is an acceptable trade-off — no network requests fire
+ * because no BannerAd components mount.
+ */
+function AdMobGate() {
+  const { adsEnabled } = useAdConsent();
+  useEffect(() => {
+    if (!adsEnabled) return;
+    initializeAdMobIfNeeded().catch((err) => {
+      console.warn("AdMob init failed:", err);
+    });
+  }, [adsEnabled]);
+  return null;
 }
 
 /**

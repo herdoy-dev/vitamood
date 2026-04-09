@@ -18,6 +18,14 @@ export interface ConsentPrefs {
   safetyLogOptIn: boolean;
   /** Receive adaptive reminders via push. */
   adaptiveReminders: boolean;
+  /**
+   * Show opt-in support banner ads on the Account and Exercises
+   * tabs. Default FALSE. When false, the AdMob SDK never
+   * initializes and no tracker fires (lib/ads/init.ts respects
+   * this flag as a hard gate). PLAN.md §12 documents the
+   * trade-off — ads are off by default on purpose.
+   */
+  adsEnabled: boolean;
 }
 
 /**
@@ -67,5 +75,6 @@ export async function getConsent(uid: string): Promise<ConsentPrefs | null> {
     aiMemoryEnabled: settings.aiMemoryEnabled ?? false,
     safetyLogOptIn: settings.safetyLogOptIn ?? false,
     adaptiveReminders: settings.adaptiveReminders ?? false,
+    adsEnabled: settings.adsEnabled ?? false,
   };
 }
