@@ -274,6 +274,27 @@ export default function AccountTab() {
         </View>
       </Card>
 
+      {/* Data controls — GDPR + Play Store mental-health policy
+          both require self-service export and deletion. Placed
+          near the bottom below the main settings and above sign
+          out so the destructive option isn't the first thing the
+          user sees. */}
+      <Card className="mt-3">
+        <Text variant="caption">Your data</Text>
+        <View className="mt-2 gap-2">
+          <Button
+            label="Export my data"
+            variant="ghost"
+            onPress={() => router.push("/export-data")}
+          />
+          <Button
+            label="Delete my account"
+            variant="crisis"
+            onPress={() => router.push("/delete-account")}
+          />
+        </View>
+      </Card>
+
       <View className="mt-6 mb-6 gap-3">
         <Button
           label={signingOut ? "Signing out…" : "Sign out"}
