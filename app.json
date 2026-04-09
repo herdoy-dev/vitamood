@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "VitaMood",
-    "slug": "VitaMood",
+    "slug": "vitamood",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -53,6 +53,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a81238f5-d2d8-46d2-84cb-e0b03cf6c650"
+      }
+    },
+    "owner": "herdoydev"
   }
 }

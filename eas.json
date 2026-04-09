@@ -29,7 +29,7 @@
         "buildType": "app-bundle"
       },
       "channel": "production",
-      "autoIncrement": "versionCode",
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_USE_REAL_AI": "0"
       }
