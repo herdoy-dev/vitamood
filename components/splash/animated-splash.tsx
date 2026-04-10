@@ -154,11 +154,7 @@ export function AnimatedSplash() {
     >
       <Animated.View style={logoStyle}>
         <Image
-          // Use the same icon.png the Android adaptive icon
-          // foreground already points at — keeps the brand mark
-          // consistent across the launcher icon, the native splash,
-          // and this React overlay.
-          source={require("@/assets/images/icon.png")}
+          source={require("@/assets/images/logo.png")}
           style={{ width: LOGO_SIZE, height: LOGO_SIZE }}
           resizeMode="contain"
         />
