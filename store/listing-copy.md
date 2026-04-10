@@ -163,7 +163,7 @@ Google may ask for credentials to review features behind sign-in. Create a throw
 |---|---|
 | Email | (replace with a real address before publishing) |
 | Phone | (optional, can leave blank) |
-| Website | `https://herdoydev.github.io/vitamood/` (the GitHub Pages site set up in `docs/`) |
+| Website | `https://herdoy-dev.github.io/vitamood/` (the GitHub Pages site set up in `docs/`) |
 
 ---
 

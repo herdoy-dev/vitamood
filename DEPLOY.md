@@ -234,9 +234,9 @@ The repo publishes `docs/privacy-policy.md` and `docs/terms-of-service.md` to Gi
 
 Your URLs will be:
 
-- **Privacy policy** → `https://herdoydev.github.io/vitamood/privacy-policy/`
-- **Terms of service** → `https://herdoydev.github.io/vitamood/terms-of-service/`
-- **Landing page** → `https://herdoydev.github.io/vitamood/`
+- **Privacy policy** → `https://herdoy-dev.github.io/vitamood/privacy-policy/`
+- **Terms of service** → `https://herdoy-dev.github.io/vitamood/terms-of-service/`
+- **Landing page** → `https://herdoy-dev.github.io/vitamood/`
 
 Paste the privacy policy URL into Play Console → **Policy → App content → Privacy policy**.
 
