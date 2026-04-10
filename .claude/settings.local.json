@@ -7,7 +7,19 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__query-docs",
       "Bash(bunx tsc:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(grep -l \"variant=\\\\\"muted\\\\\"\" /home/herdoy/Desktop/Projects/Hobby/vitamood/components/exercises/*.tsx)",
+      "Bash(bunx eslint:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(grep -iE \"sk-[a-z0-9]{10,}|openai_api_key.*=.*[a-z0-9]{10}|OPENAI_API_KEY.*=.*sk-\")",
+      "Bash(grep -rE \"sk-[a-zA-Z0-9]{20,}|OPENAI_API_KEY.*=.*['\\\\\"]sk-\" /home/herdoy/Desktop/Projects/Hobby/vitamood/functions/ /home/herdoy/Desktop/Projects/Hobby/vitamood/lib/chat/ai-client.ts /home/herdoy/Desktop/Projects/Hobby/vitamood/lib/openai/)",
+      "Bash(grep -iE \"\\(sk-[a-zA-Z0-9]{20}|api[_-]?key[\\\\\"']?\\\\s*[:=]\\\\s*[\\\\\"'][a-zA-Z0-9]{15,}\\)\")",
+      "Bash(git check-ignore:*)",
+      "Bash(cat /home/herdoy/Desktop/Projects/Hobby/vitamood/.vscode/*)",
+      "Bash(bun run:*)",
+      "Bash(bunx eas:*)"
     ]
   }
 }
