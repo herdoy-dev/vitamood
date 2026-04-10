@@ -60,6 +60,12 @@
         "projectId": "a81238f5-d2d8-46d2-84cb-e0b03cf6c650"
       }
     },
-    "owner": "herdoydev"
+    "owner": "herdoydev",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a81238f5-d2d8-46d2-84cb-e0b03cf6c650"
+    }
   }
 }
