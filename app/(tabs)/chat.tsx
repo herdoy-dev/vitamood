@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -291,14 +291,32 @@ export default function ChatTab() {
     }, 900);
   }
 
+  // Track the keyboard height directly via the Keyboard API.
+  // More reliable than KeyboardAvoidingView which does nothing on
+  // Android with behavior=undefined and is flaky with edge-to-edge
+  // + tab bars. We apply the height as paddingBottom on the input
+  // container so the input row always sits above the keyboard.
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKbHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKbHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
-    >
-      <Screen>
-        <View className="flex-1">
+    <Screen>
+      <View className="flex-1" style={{ paddingBottom: kbHeight }}>
           {/* Thin chat header — caption + close button. The body
               title from the previous version is gone; this surface
               is now an immersive conversation, not a tab page. */}
@@ -380,7 +398,6 @@ export default function ChatTab() {
           </View>
         </View>
       </Screen>
-    </KeyboardAvoidingView>
   );
 }
 
