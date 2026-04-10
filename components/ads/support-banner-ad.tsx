@@ -73,27 +73,43 @@ import { useAdConsent } from "@/lib/ads/consent";
  */
 
 // The native module. Loaded lazily on first render with ads on.
-// `null` until we've tried; `false` if require() failed and we
-// should stop trying.
+// `null` until we've tried; `false` if require() failed or the
+// native binary doesn't have the module.
 type AdsModule = typeof import("react-native-google-mobile-ads");
 let cachedModule: AdsModule | null = null;
 let moduleLoadFailed = false;
 
+/**
+ * Same pre-check as lib/ads/init.ts: probe via NativeModules
+ * (returns undefined, no throw) instead of letting the JS module's
+ * TurboModuleRegistry.getEnforcing throw a red Invariant Violation.
+ */
+function hasNativeAdMobModule(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { NativeModules } = require("react-native");
+    return NativeModules.RNGoogleMobileAdsModule != null;
+  } catch {
+    return false;
+  }
+}
+
 function loadAdsModule(): AdsModule | null {
   if (cachedModule) return cachedModule;
   if (moduleLoadFailed) return null;
+
+  // Check BEFORE require() to avoid the TurboModule red error.
+  if (!hasNativeAdMobModule()) {
+    moduleLoadFailed = true;
+    return null;
+  }
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     cachedModule = require("react-native-google-mobile-ads") as AdsModule;
     return cachedModule;
   } catch (err) {
-    console.warn(
-      "AdMob native module not available — banner disabled. " +
-        "This is expected in Expo Go or an old dev client. " +
-        "Rebuild the dev client with `bunx eas build --profile development --platform android` " +
-        "to enable ads.",
-      err,
-    );
+    console.warn("AdMob JS module failed to load:", err);
     moduleLoadFailed = true;
     return null;
   }

@@ -44,23 +44,50 @@
 let initStarted = false;
 let initCompleted = false;
 
+/**
+ * Check whether the native AdMob module is registered in this
+ * binary WITHOUT triggering TurboModuleRegistry.getEnforcing,
+ * which throws an Invariant Violation that clutters the error
+ * log even when caught. NativeModules[key] returns undefined
+ * (not throw) if the module isn't registered.
+ */
+function hasNativeAdMobModule(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { NativeModules } = require("react-native");
+    return NativeModules.RNGoogleMobileAdsModule != null;
+  } catch {
+    return false;
+  }
+}
+
 export async function initializeAdMobIfNeeded(): Promise<void> {
   if (initStarted) return; // idempotent — effects may fire twice in dev
+
+  // Pre-check: is the native AdMob binary in this build? If not,
+  // bail out immediately without even require()-ing the JS module.
+  // The JS module's top-level code calls TurboModuleRegistry
+  // .getEnforcing which throws a red Invariant Violation that
+  // React Native reports to the error log even inside a try-catch.
+  // Checking via NativeModules avoids that noise entirely.
+  if (!hasNativeAdMobModule()) {
+    console.warn(
+      "AdMob native module not in this binary — skipping init. " +
+        "Rebuild the dev client with: bunx eas build --profile development --platform android",
+    );
+    return;
+  }
+
   initStarted = true;
 
-  // Lazy-require the native module. Fails gracefully in any
-  // runtime that doesn't have the compiled AdMob binary.
+  // Lazy-require the native module. Should succeed now that we've
+  // confirmed the native binary has it.
   let mod: typeof import("react-native-google-mobile-ads");
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     mod = require("react-native-google-mobile-ads");
   } catch (err) {
-    console.warn(
-      "AdMob native module not available — skipping init. " +
-        "Rebuild the dev client with `bunx eas build --profile development --platform android` " +
-        "to enable ads.",
-      err,
-    );
+    console.warn("AdMob JS module failed to load:", err);
     return;
   }
 
